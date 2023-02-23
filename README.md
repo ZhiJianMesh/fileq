@@ -7,11 +7,17 @@
 
 每个队列push 40万10字节长的消息，每个队列两个消费者，一个并发消费，一个顺序消费。
 
-在8C/8G笔记本上测试为，push 40万/秒， 消费10万/秒。
+在8个虚拟核的笔记本上测试，push 41万/秒， 消费10万/秒。
 
-Write num:1600000, speed: 407747, interval:3924ms
+Write num:1600000, speed: 413009
 
-Consume num:3998220, speed: 103621
+Consume num:3200000, speed: 90385
+
+如果push全部用缓存文件方式，push接近千万/秒，消费14万/秒（仍需要提升）
+
+Write num:1600000, speed: 10256410
+
+Consume num:3200000, speed: 141411
 
 #### 软件架构
 Provider -> Consumers
