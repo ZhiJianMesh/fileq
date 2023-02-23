@@ -60,7 +60,7 @@ public class ConcurrentQueueTest extends TestBase {
         
         try {
             FileQueue fq = builder.build();
-            fq.addConsumer("consumerA", false, (msg, reader) -> {
+            fq.addConsumer("consumerA", false, (msg) -> {
             	handleTime = System.currentTimeMillis();
             	if(msg.len() == 10) {
             		LOG.error("Invalid message len {}", msg.len());
@@ -69,7 +69,7 @@ public class ConcurrentQueueTest extends TestBase {
                 return true;
             });
             
-            fq.addConsumer("consumerB", false, (msg, reader) -> {
+            fq.addConsumer("consumerB", false, (msg) -> {
             	handleTime = System.currentTimeMillis();
             	if(msg.len() == 10) {
             		LOG.error("Invalid message len {}", msg.len());

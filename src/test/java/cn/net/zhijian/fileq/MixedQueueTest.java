@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import cn.net.zhijian.fileq.intf.IFile;
 import cn.net.zhijian.fileq.intf.IMessage;
 import cn.net.zhijian.fileq.intf.IMessageHandler;
-import cn.net.zhijian.fileq.intf.IReader;
 import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
@@ -30,7 +29,7 @@ public class MixedQueueTest extends TestBase {
 
     private static CountDownLatch lock = new CountDownLatch(1);
 	private static long handleTime = System.currentTimeMillis();
-	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
+	private static AtomicInteger handledMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {
         int threadNum = Runtime.getRuntime().availableProcessors() * 2;
@@ -45,10 +44,10 @@ public class MixedQueueTest extends TestBase {
         Dispatcher dispatcher = new Dispatcher(threadPool);
         dispatcher.start();
         try {
-            fqs[0] = createQueue("q1", "t1", false, false, dispatcher);
-            fqs[1] = createQueue("q1", "t2", false, false, dispatcher);
-            fqs[2] = createQueue("q2", "t1", true, false, dispatcher);
-            fqs[3] = createQueue("q2", "t2", true, false, dispatcher);
+            fqs[0] = createQueue("q1", "t1", true, true, dispatcher);
+            fqs[1] = createQueue("q1", "t2", true, true, dispatcher);
+            fqs[2] = createQueue("q2", "t1", true, true, dispatcher);
+            fqs[3] = createQueue("q2", "t2", true, true, dispatcher);
             
             byte[] content = new byte[10];
             byte[] s = "aaaaaa".getBytes();
@@ -81,7 +80,7 @@ public class MixedQueueTest extends TestBase {
             		dispatcher.handledMsgNum(),
             		(1000L * dispatcher.handledMsgNum()) / interval,
             		interval,
-            		pollMsgNum.get());
+            		handledMsgNum.get());
             dispatcher.shutdown();
         } catch (Exception e) {
             LOG.error("Failed", e);
@@ -103,7 +102,7 @@ public class MixedQueueTest extends TestBase {
             .bufferedPoll(bufferedPoll);
         
         FileQueue fq = builder.build();
-        fq.addConsumer("concurrent", false, (msg, reader) -> {
+        fq.addConsumer("concurrent", false, (msg) -> {
             handleTime = System.currentTimeMillis();
             if(msg.len() != 10) {
                 LOG.error("Invalid msg len {}", msg.len());
@@ -112,7 +111,7 @@ public class MixedQueueTest extends TestBase {
             if(no < 0 || no >= MSG_NUM) {
                 LOG.error("Invalid msg no {}", no);
             }
-            pollMsgNum.getAndIncrement();
+            handledMsgNum.getAndIncrement();
             return true;
         });
         
@@ -120,7 +119,7 @@ public class MixedQueueTest extends TestBase {
             private int preNo = -1;
             
             @Override
-            public boolean handle(IMessage msg, IReader reader) {
+            public boolean handle(IMessage msg) {
                 handleTime = System.currentTimeMillis();
                 if(msg.len() != 10) {
                     LOG.error("Invalid message len {}", msg.len());
@@ -134,7 +133,7 @@ public class MixedQueueTest extends TestBase {
                     }
                 }
                 preNo = no;
-                pollMsgNum.getAndIncrement();
+                handledMsgNum.getAndIncrement();
                 return true;
             }
         });

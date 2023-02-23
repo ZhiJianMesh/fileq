@@ -30,5 +30,5 @@ public interface IMessageHandler {
      * @param writer
      *  If failed to handle the message, you can write it back
      */
-    public boolean handle(IMessage msg, IReader reader);
+    public boolean handle(IMessage msg);
 }

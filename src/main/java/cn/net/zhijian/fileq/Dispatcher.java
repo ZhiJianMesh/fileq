@@ -89,7 +89,7 @@ class Dispatcher extends Thread implements IDispatcher {
         
         public void handle(IMessage msg) {
             try {
-                if(!handler.handle(msg, reader)) {
+                if(!handler.handle(msg)) {
                     reader.confirm(false);
                 } else {
                     reader.confirm(true);
