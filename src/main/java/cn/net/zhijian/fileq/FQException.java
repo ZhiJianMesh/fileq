@@ -16,7 +16,7 @@ limitations under the License.
 package cn.net.zhijian.fileq;
 
 /**
- * 文件队列异常
+ * FileQueue Exception
  * @author Lgy
  *
  */

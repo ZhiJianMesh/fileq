@@ -84,23 +84,12 @@ class Dispatcher extends Thread implements IDispatcher {
         }
         
         public void hasten() {
-            this.reader.writer().hasten();
+            this.reader.hasten();
         }
         
         public void handle(IMessage msg) {
             try {
-                if(!handler.handle(msg)) {
-                    reader.confirm(false);
-                } else {
-                    reader.confirm(true);
-                }
-                /*
-                 * When using sequential reader, one message confirmed,
-                 * then the next one. So active the loop again right now.
-                 */
-                if(reader.needNotifyReady()) {
-                    Dispatcher.this.ready();
-                }
+                reader.confirm(handler.handle(msg));
             } catch(Exception e) { //catch all exceptions to avoid thread crashes
                 LOG.error("Fail to handle msg from queue({}) in {}", name, queueName, e);
             }
@@ -172,7 +161,7 @@ class Dispatcher extends Thread implements IDispatcher {
         int msgNum;
         int count;
         Queue queue;
-        
+
         while(goon) {
             msgNum = 0;
             for(Map.Entry<String, Queue> q : queues.entrySet()) {
@@ -184,13 +173,17 @@ class Dispatcher extends Thread implements IDispatcher {
                         continue;
                     }
                     count++;
-                    threadPool.submit(() -> c.handle(msg));                    
+                    threadPool.submit(() -> c.handle(msg));
                 }
                 msgNum += count;
             }
 
             if(msgNum == 0) {
                 tracing = false;
+                /*
+                 * In sequential mode, waste so much time here.
+                 * When handling a message, consumer often be blocked here.
+                 */
                 synchronized(lock) {
                     try {
                         lock.wait(WATI_TIME);
@@ -198,10 +191,11 @@ class Dispatcher extends Thread implements IDispatcher {
                     }
                 }
                 tracing = true;
+
                 for(Map.Entry<String, Queue> q : queues.entrySet()) {
                     queue = q.getValue();
                     for(Consumer c : queue.consumers) {
-                        //flush buffered data to disk if in buffered mode  
+                        //flush buffered data to disk if in bufferedPush mode  
                         c.hasten();
                     }
                 }

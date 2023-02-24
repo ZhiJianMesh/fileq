@@ -28,7 +28,8 @@ public class MixedQueueTest extends TestBase {
     private static Logger LOG = LogUtil.getInstance();
 
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long handleTime = System.currentTimeMillis();
+	private static long lastHandleTime = System.currentTimeMillis();
+    private static long firstHandleTime = -1;
 	private static AtomicInteger handledMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {
@@ -44,8 +45,8 @@ public class MixedQueueTest extends TestBase {
         Dispatcher dispatcher = new Dispatcher(threadPool);
         dispatcher.start();
         try {
-            fqs[0] = createQueue("q1", "t1", true, true, dispatcher);
-            fqs[1] = createQueue("q1", "t2", true, true, dispatcher);
+            fqs[0] = createQueue("q1", "t1", false, true, dispatcher);
+            fqs[1] = createQueue("q1", "t2", false, true, dispatcher);
             fqs[2] = createQueue("q2", "t1", true, true, dispatcher);
             fqs[3] = createQueue("q2", "t2", true, true, dispatcher);
             
@@ -63,22 +64,22 @@ public class MixedQueueTest extends TestBase {
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{}, speed: {}, interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            LOG.debug("Write num:{},speed:{}/s, interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
 				public void run() { //每秒检查一次是否还有更多的消息，如果3秒没收到，则结束
-					if(System.currentTimeMillis() - handleTime > WAIT_TIME) {
+					if(System.currentTimeMillis() - lastHandleTime > WAIT_TIME) {
 						lock.countDown();
 					}
 				}
             }, 1000, 1000);
             
             lock.await();
-            interval = handleTime > start ? handleTime - start : 1;
-            LOG.debug("Consume num:{}, speed: {}, interval:{}ms, handled message num:{}",
+            interval = lastHandleTime > firstHandleTime ? lastHandleTime - firstHandleTime : 1;
+            LOG.debug("Read num:{},speed:{}/s, interval:{}ms, handled message:{}",
             		dispatcher.handledMsgNum(),
-            		(1000L * dispatcher.handledMsgNum()) / interval,
+            		(1000L * handledMsgNum.get()) / interval,
             		interval,
             		handledMsgNum.get());
             dispatcher.shutdown();
@@ -103,7 +104,7 @@ public class MixedQueueTest extends TestBase {
         
         FileQueue fq = builder.build();
         fq.addConsumer("concurrent", false, (msg) -> {
-            handleTime = System.currentTimeMillis();
+            recordConsumeTime();
             if(msg.len() != 10) {
                 LOG.error("Invalid msg len {}", msg.len());
             }
@@ -120,7 +121,7 @@ public class MixedQueueTest extends TestBase {
             
             @Override
             public boolean handle(IMessage msg) {
-                handleTime = System.currentTimeMillis();
+                recordConsumeTime();
                 if(msg.len() != 10) {
                     LOG.error("Invalid message len {}", msg.len());
                 }
@@ -139,5 +140,12 @@ public class MixedQueueTest extends TestBase {
         });
         
         return fq;
+    }
+    
+    private static void recordConsumeTime() {
+        lastHandleTime = System.currentTimeMillis();
+        if(firstHandleTime < 0) {
+            firstHandleTime = lastHandleTime;
+        }
     }
 }

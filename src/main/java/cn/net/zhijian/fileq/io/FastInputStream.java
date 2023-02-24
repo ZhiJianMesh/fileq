@@ -33,6 +33,7 @@ public class FastInputStream implements IInputStream {
     private FileInputStream fis;
     private BufferedInputStream bis;
     private int readPos = 0;
+    private int available = 0;
 
     public FastInputStream(String file) throws IOException {
         fis = new FileInputStream(file);
@@ -50,6 +51,7 @@ public class FastInputStream implements IInputStream {
     public int read(byte[] buff) throws IOException {
         int l = bis.read(buff);
         readPos += l;
+        available -= l;
         return l;
     }
     
@@ -57,6 +59,7 @@ public class FastInputStream implements IInputStream {
     public int read(byte[] buff, int offset, int len) throws IOException {
         int l = bis.read(buff, offset, len);
         readPos += l;
+        available -= l;
         return l;
     }
 
@@ -76,8 +79,15 @@ public class FastInputStream implements IInputStream {
     
     @Override
     public boolean hasMore() {
+        if(available > 0) {
+            return true;
+        }
+
         try {
-            return bis.available() > 0;
+            //available() is a IO operation,
+            //Here,need not a precise value, so use a cached one
+            available = bis.available();
+            return available > 0;
             //return fis.available() > 0; //always return 0
         } catch (IOException e) {
             return false;

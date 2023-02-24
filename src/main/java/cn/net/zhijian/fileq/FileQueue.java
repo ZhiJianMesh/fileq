@@ -108,7 +108,7 @@ public final class FileQueue implements IFile {
         IReader reader;
         try {
             if(sequential) {
-                reader = new SequentialReader(name, writer, bufferedPoll);
+                reader = new SequentialReader(name, writer, dispatcher, bufferedPoll);
             } else {
                 reader = new ConcurrentReader(name, writer, bufferedPoll);
             }
@@ -192,8 +192,7 @@ public final class FileQueue implements IFile {
         
         /**
          * Set buffered poll mode.
-         * In concurrent consumer, it can improve the poll performance.
-         * In sequential consumer, it is not a good choice.
+         * It can improve the poll performance.
          * @param buffered Whether pre-read or read as need.
          * @return builder
          */

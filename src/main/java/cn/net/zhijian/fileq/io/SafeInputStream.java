@@ -39,6 +39,7 @@ public class SafeInputStream implements IInputStream {
     private FileInputStream fis;
     private FileChannel fc;
     private int readPos = 0;
+    private long size = 0;
 
     public SafeInputStream(String file) throws IOException {
         fis = new FileInputStream(file);
@@ -76,8 +77,15 @@ public class SafeInputStream implements IInputStream {
     
     @Override
     public boolean hasMore() {
+        if(size > readPos) {
+            return true;
+        }
+        
         try {
-            return fc.size() > readPos;
+            //size() is a IO operation,
+            //Here,need not a precise value, so use a cached one
+            size = fc.size();
+            return size > readPos;
             //return fis.available() > 0; //is writing
         } catch (IOException e) {
             return false;

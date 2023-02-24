@@ -284,9 +284,10 @@ class ConcurrentReader implements IReader {
     public IWriter writer() {
         return writer;
     }
-
-    @Override
-    public boolean needNotifyReady() {
-        return false;
+    
+    public void hasten() {
+        if(qFile == null || !qFile.hasMore()) {
+            writer.hasten();
+        }
     }
 }

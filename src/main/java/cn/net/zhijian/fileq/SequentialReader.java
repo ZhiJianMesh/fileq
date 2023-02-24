@@ -18,6 +18,7 @@ package cn.net.zhijian.fileq;
 import java.io.IOException;
 
 import cn.net.zhijian.fileq.bean.SequentialMessage;
+import cn.net.zhijian.fileq.intf.IDispatcher;
 import cn.net.zhijian.fileq.intf.IMessage;
 import cn.net.zhijian.fileq.intf.IWriter;
 
@@ -41,17 +42,21 @@ class SequentialReader extends ConcurrentReader {
     
     private int retryInterval = MIN_RETRY_INTERVAL; //ms
     private long retriedAt; //ms，上次尝试时间点
+    private final IDispatcher dispatcher;
+
     private SequentialMessage msg = new SequentialMessage(DEFAULT_BUF_LEN);
     protected MsgState state = MsgState.IDLE;
     
     /**
      * @param name consumer name
-     * @param writer
+     * @param writer message wirter
+     * @param dispatcher message dispatcher
      * @param buffered buffered mode
      * @throws IOException
      */
-    public SequentialReader(String name, IWriter writer, boolean buffered) throws IOException {
+    public SequentialReader(String name, IWriter writer, IDispatcher dispatcher, boolean buffered) throws IOException {
         super(name, writer, buffered);
+        this.dispatcher = dispatcher;
     }
 
     /**
@@ -104,10 +109,10 @@ class SequentialReader extends ConcurrentReader {
         } else{
             state = MsgState.FAILED;
         }
+        /*
+         * In sequential reader, one message confirmed,
+         * then handle the next one. So active the loop right now.
+         */
+        dispatcher.ready();
     }
-    
-    @Override
-    public boolean needNotifyReady() {
-        return true;
-    } 
 }

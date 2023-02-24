@@ -34,11 +34,12 @@ import cn.net.zhijian.fileq.util.LogUtil;
  *   Consume num:1000000, speed: 135851, interval:7361ms, handled message num:1000000
  */
 public class ConcurrentQueueTest extends TestBase {
-    private static final int MSG_NUM = 500000;
+    private static final int MSG_NUM = 400000;
     private static final int WAIT_TIME = 3000;
     private static Logger LOG = LogUtil.getInstance();
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long handleTime;
+	private static long lastHandleTime;
+    private static long firstHandleTime = -1;
     
     public static void main(String[] args) {
         LOG.debug("Start test");
@@ -61,8 +62,8 @@ public class ConcurrentQueueTest extends TestBase {
         try {
             FileQueue fq = builder.build();
             fq.addConsumer("consumerA", false, (msg) -> {
-            	handleTime = System.currentTimeMillis();
-            	if(msg.len() == 10) {
+                recordConsumeTime();
+            	if(msg.len() != 10) {
             		LOG.error("Invalid message len {}", msg.len());
             	}
                 handledMsgNum.incrementAndGet();
@@ -70,20 +71,20 @@ public class ConcurrentQueueTest extends TestBase {
             });
             
             fq.addConsumer("consumerB", false, (msg) -> {
-            	handleTime = System.currentTimeMillis();
-            	if(msg.len() == 10) {
+                recordConsumeTime();
+            	if(msg.len() != 10) {
             		LOG.error("Invalid message len {}", msg.len());
             	}
                 handledMsgNum.incrementAndGet();
                 return true;
             });
             
-            start = System.currentTimeMillis();
             byte[] content = new byte[10];
             byte[] s = "aaaaaa".getBytes();
             System.arraycopy(s, 0, content, Integer.BYTES, s.length);
             
-            handleTime = System.currentTimeMillis();
+            start = System.currentTimeMillis();
+            lastHandleTime = System.currentTimeMillis();
             for(int i = 0; i < MSG_NUM; i++) {
                 try {
                     IFile.encodeInt(content, i, 0);
@@ -93,20 +94,20 @@ public class ConcurrentQueueTest extends TestBase {
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{}, speed: {}, interval:{}ms", MSG_NUM, (1000L * MSG_NUM) / interval, interval);
+            LOG.debug("Write num:{},speed:{}/s, interval:{}ms", MSG_NUM, (1000L * MSG_NUM) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
 				public void run() { //每秒检查一次是否还有更多的消息，如果3秒没收到，则结束
-					if(System.currentTimeMillis() - handleTime > WAIT_TIME) {
+					if(System.currentTimeMillis() - lastHandleTime > WAIT_TIME) {
 						lock.countDown();
 					}
 				}
             }, 1000, 1000);
             
             lock.await();
-            interval = handleTime > start ? handleTime - start : 1;
-            LOG.debug("Consume num:{}, speed: {}, interval:{}ms, handled message num:{}",
+            interval = lastHandleTime > firstHandleTime ? lastHandleTime - firstHandleTime : 1;
+            LOG.debug("Read num:{},speed:{}/s,interval:{}ms, handled message num:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * handledMsgNum.get()) / interval,
             		interval,
@@ -144,5 +145,12 @@ public class ConcurrentQueueTest extends TestBase {
             return false;
         }
         return true;
+    }
+    
+    private static void recordConsumeTime() {
+        lastHandleTime = System.currentTimeMillis();
+        if(firstHandleTime < 0) {
+            firstHandleTime = lastHandleTime;
+        }
     }
 }

@@ -52,9 +52,5 @@ public interface IReader extends IFile {
      */
     IWriter writer();
     
-    /**
-     * Need notify consumer that there are some messages coming
-     * @return
-     */
-    boolean needNotifyReady();
+    void hasten();
 }

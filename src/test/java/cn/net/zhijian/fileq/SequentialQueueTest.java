@@ -42,11 +42,12 @@ public class SequentialQueueTest extends TestBase {
                 .dispatcher(dispatcher)
                 .maxFileNum(40)
                 .maxFileSize(8 * 1024 * 1024)
-                .bufferedPush(false);
+                .bufferedPush(true)
+                .bufferedPoll(false);
         dispatcher.start();
         try {
             FileQueue fq = builder.build();
-            fq.addConsumer("consumerA", true, (msg, reader) -> {
+            fq.addConsumer("consumerA", true, (msg) -> {
             	handleTime = System.currentTimeMillis();
             	if(msg.len() < 5) {
             		LOG.error("Invalid message len {}", msg.len());
@@ -56,7 +57,7 @@ public class SequentialQueueTest extends TestBase {
                 return true;
             });
             
-            fq.addConsumer("consumerB", true, (msg, reader) -> {
+            fq.addConsumer("consumerB", true, (msg) -> {
             	handleTime = System.currentTimeMillis();
             	if(msg.len() < 5) {
             		LOG.error("Invalid message len {}", msg.len());
@@ -78,7 +79,7 @@ public class SequentialQueueTest extends TestBase {
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{}, speed: {}, interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            LOG.debug("Write num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
@@ -91,7 +92,7 @@ public class SequentialQueueTest extends TestBase {
             
             lock.await();
             interval = handleTime > start ? handleTime - start : 1;
-            LOG.debug("Consume num:{}, speed: {}, interval:{}ms, handled message num:{}",
+            LOG.debug("Read num:{},speed:{}/s,interval:{}ms, handled message num:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * dispatcher.handledMsgNum()) / interval,
             		interval,
