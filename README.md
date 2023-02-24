@@ -13,10 +13,10 @@ if(!FQTool.started()) {
 }
 String queueDir = "dir for queue";
 FileQueue.Builder builder = new FileQueue.Builder(queueDir, "queue_name")
-				.maxFileNum(50) //根据需要缓存的最大长度，确定文件个数，即使文件数超过这个数字，队列也不会删除未消费的文件
-                .maxFileSize(16 * 1024 * 1024) //单个文件不宜过大，根据队列的规模确定单个文件的大小，避免频繁产生新文件
-                .bufferedPush(false) //及时落盘，但是性能只有20万每秒，满足绝大部分场景的性能需求
-                .bufferedPoll(true); //poll时尽量使用缓存文件
+	.maxFileNum(50) //根据需要缓存的最大长度，确定文件个数，即使文件数超过这个数字，队列也不会删除未消费的文件
+	.maxFileSize(16 * 1024 * 1024) //单个文件不宜过大，根据队列的规模确定单个文件的大小，避免频繁产生新文件
+	.bufferedPush(false) //及时落盘，但是性能只有20万每秒，满足绝大部分场景的性能需求
+	.bufferedPoll(true); //poll时尽量使用缓存文件
 FileQueue fq = FQTool.create(builder);
 fq.addConsumer("sequential_consumer", true, (msg,reader) -> {...});
 ```
