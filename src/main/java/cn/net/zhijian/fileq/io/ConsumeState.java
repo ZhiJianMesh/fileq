@@ -18,12 +18,12 @@ package cn.net.zhijian.fileq.io;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
 
 import cn.net.zhijian.fileq.intf.IFile;
+import cn.net.zhijian.fileq.intf.IOutputStream;
 import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
@@ -34,48 +34,67 @@ import cn.net.zhijian.fileq.util.LogUtil;
 public class ConsumeState implements Closeable, IFile {
     private static final Logger LOG = LogUtil.getInstance();
     private static final int MAX_SAVE_INTERVAL = 1000;
+    //max problem is that it may cause re-consume 1000 messages
     private static final int MAX_BUFFER_TIMES = 1000;
+    private static final int MAX_SIZE = 100 * 1024 * Integer.BYTES * 2 + FILE_HEAD_LEN;
 
     private final String fileName;
-    private RandomAccessFile stateFile;
+    private IOutputStream stateFile;
     private long recordTime = System.currentTimeMillis(); //save file time
     private int fileNo = 0;
     private int readPos = FILE_HEAD_LEN;
     private int bufferTimes = 0;
+    private byte[] buf = new byte[Integer.BYTES * 2];
 
     public ConsumeState(String fileName) throws IOException {
         this.fileName = fileName;
         File f = new File(fileName);
 
-        if(f.exists()) { //if not exists, all start from 0
-            byte[] magic = new byte[MAGIC.length];
-            this.stateFile = new RandomAccessFile(new File(this.fileName), "rwd");
-            this.stateFile.read(magic);
-            int ver = stateFile.read();
-            int fileNo = stateFile.readInt(); //fixed to 0
-            if (ver == VER && Arrays.equals(magic, MAGIC) && fileNo == 0) {
-                this.fileNo = stateFile.readInt();
-                this.readPos = stateFile.readInt();
-            } else {
-                LOG.error("Invalid consumer state recorder file {}, re-create it", this.fileName);
-                create(0, FILE_HEAD_LEN);
-            }
-        } else {
-            create(0, FILE_HEAD_LEN);
+        if(!f.exists()) { //if not exists, all start from 0
+            init(0, FILE_HEAD_LEN);
+            return;
         }
+        
+        int fileNo = 0;
+        int readPos = FILE_HEAD_LEN;
+        load : try(FastInputStream fis = new FastInputStream(fileName)) {
+            byte[] head = new byte[FILE_HEAD_LEN];
+            int readLen = fis.read(head);
+            if(readLen < FILE_HEAD_LEN) {
+                break load;
+            }
+            //MAGIC(5) + ver(1) + fileNo(4)
+            int ver = ((int)head[MAGIC.length]) & 0xff;
+            fileNo = IFile.parseInt(head, MAGIC.length + 1);
+            if (ver != VER || fileNo != 0
+                || !Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length)) {
+                break load;
+            }
+            
+            //continue reading until the last one
+            while((readLen = fis.read(buf)) == buf.length) {
+                fileNo = IFile.parseInt(buf, 0);
+                readPos = IFile.parseInt(buf, Integer.BYTES);
+            }
+        }
+        init(fileNo, readPos);
     }
     
-    private void create(int fileNo, int readPos) throws IOException {
+    private void init(int fileNo, int readPos) throws IOException {
         this.fileNo = fileNo;
         this.readPos = readPos;
 
         LOG.info("Create read-state file {}", this.fileName);
-        stateFile = new RandomAccessFile(new File(this.fileName), "rwd");
-        stateFile.write(MAGIC);
-        stateFile.write(VER);
-        stateFile.writeInt(0);  //fileNo
-        stateFile.writeInt(fileNo);  //curFileNo
-        stateFile.writeInt(readPos);  //readPos
+        this.stateFile = new SafeOutputStream(this.fileName);
+        //MAGIC(5) + ver(1) + 0(4) + fileNo(4) + readPos(4) ...
+        byte[] head = new byte[FILE_HEAD_LEN + Integer.BYTES * 2];
+        System.arraycopy(MAGIC, 0, head, 0, MAGIC.length);
+        head[MAGIC.length] = VER;
+        IFile.encodeInt(head, 0, MAGIC.length + 1);
+        IFile.encodeInt(head, fileNo, FILE_HEAD_LEN);
+        IFile.encodeInt(head, readPos, FILE_HEAD_LEN + Integer.BYTES);
+        this.stateFile.write(head);
+        this.stateFile.flush();
     }
 
     @Override
@@ -83,7 +102,7 @@ public class ConsumeState implements Closeable, IFile {
         if(stateFile == null) {
             return;
         }
-        LOG.debug("Close state {}, fileNo:{},readPos:{}", fileName, toString());
+        LOG.debug("Close state {}, {}", fileName, toString());
         save(true);
         stateFile.close();
         stateFile = null;
@@ -114,9 +133,15 @@ public class ConsumeState implements Closeable, IFile {
 
         synchronized(stateFile) {
             try {
-                stateFile.seek(FILE_HEAD_LEN);
-                stateFile.writeInt(fileNo);
-                stateFile.writeInt(readPos);
+                if(stateFile.size() >= MAX_SIZE) { //if to large, rewrite it
+                    stateFile.close();
+                    init(fileNo, readPos);
+                } else {
+                    IFile.encodeInt(buf, fileNo, 0); //reduce write-operation one time
+                    IFile.encodeInt(buf, readPos, Integer.BYTES);
+                    stateFile.write(buf);
+                    stateFile.flush();
+                }
             } catch (IOException e) {
                 LOG.error("Fail to save consumer {} state", this.fileName, e);
             }

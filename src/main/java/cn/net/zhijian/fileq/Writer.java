@@ -192,22 +192,25 @@ class Writer implements IWriter {
 
         int pos = 0;
         int hashCode = 0;
-        int writeLen = 4 + len;
+        int writeLen = Integer.BYTES + len;
         if(chkHash) { //concurrent safe
             hashCode = IFile.hashCode(msg, offset, len);
-            writeLen += 4;
+            writeLen += Integer.BYTES;
         }
         
         lock.lock();
-        if(msgBuf.length < len + 8) {
-            msgBuf = new byte[len * 3 / 2];
+        if(msgBuf.length < writeLen) {
+            msgBuf = new byte[writeLen * 3 / 2];
         }
         
         if (chkHash) {
-            IFile.encodeInt(msgBuf, len | MSG_HASH_FLAG, pos); pos += 4;
-            IFile.encodeInt(msgBuf, hashCode, pos); pos += 4;
+            IFile.encodeInt(msgBuf, len | MSG_HASH_FLAG, pos);
+            pos += Integer.BYTES;
+            IFile.encodeInt(msgBuf, hashCode, pos);
+            pos += Integer.BYTES;
         } else {
-            IFile.encodeInt(msgBuf, len, pos); pos += 4;
+            IFile.encodeInt(msgBuf, len, pos);
+            pos += Integer.BYTES;
         }
         System.arraycopy(msg, offset, msgBuf, pos, len);
         

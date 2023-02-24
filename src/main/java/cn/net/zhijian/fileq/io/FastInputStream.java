@@ -28,6 +28,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  *
  */
 public class FastInputStream implements IInputStream {
+    private static final int BUF_SIZE = 1024 * 1024;
     public final String name;
 
     private FileInputStream fis;
@@ -37,7 +38,7 @@ public class FastInputStream implements IInputStream {
 
     public FastInputStream(String file) throws IOException {
         fis = new FileInputStream(file);
-        bis = new BufferedInputStream(fis);
+        bis = new BufferedInputStream(fis, BUF_SIZE);
         name = file;
     }
     
@@ -64,15 +65,6 @@ public class FastInputStream implements IInputStream {
     }
 
     @Override
-    public int available() {
-        try {
-            return bis.available(); //can't use fis
-        } catch (IOException e) {
-            return 0;
-        }
-    }
-
-    @Override
     public int readPos() {
         return readPos;
     }
@@ -85,10 +77,9 @@ public class FastInputStream implements IInputStream {
 
         try {
             //available() is a IO operation,
-            //Here,need not a precise value, so use a cached one
+            //Here,needn't a precise value, so use a cached one
             available = bis.available();
             return available > 0;
-            //return fis.available() > 0; //always return 0
         } catch (IOException e) {
             return false;
         }

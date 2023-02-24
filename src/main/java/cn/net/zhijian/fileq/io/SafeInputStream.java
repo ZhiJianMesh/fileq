@@ -62,15 +62,6 @@ public class SafeInputStream implements IInputStream {
     }
 
     @Override
-    public int available() {
-        try {
-            return (int)(fc.size() - readPos);
-        } catch (IOException e) {
-            return 0;
-        }
-    }
-
-    @Override
     public int readPos() {
         return readPos;
     }
@@ -80,7 +71,7 @@ public class SafeInputStream implements IInputStream {
         if(size > readPos) {
             return true;
         }
-        
+
         try {
             //size() is a IO operation,
             //Here,need not a precise value, so use a cached one

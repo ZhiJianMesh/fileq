@@ -5,21 +5,25 @@
 
 以下测试在8个虚拟核的笔记本上测试，消息为10字节，push 40万消息入队列。
 
-1）一个队列，两个并发消费，采用缓存文件方式写入，缓存文件方式读出，
+以下测试都是大致数据，只用于数量级上的比较。
 
-push约444万/秒， poll约31万/秒：
+1）一个队列，两个并发消费者，采用缓存文件方式写入，缓存文件方式读出，
+
+push约444万/秒， poll约50万/秒：
 
 Write num:400000,speed:4651162/s
 
-Read num:800000,speed:309597/s
+Read num:800000,speed:506649/s
 
-2）一个队列，两个并发消费者，采用缓存文件写入，channel方式读出；因为每个消息需要消费线程确认后才会读取下一个，大量时间用于等待确认、唤醒上。
+2）一个队列，两个并发消费者，采用缓存文件写入，channel方式读出。
 
 push约588万/秒，poll约6万/秒：
 
 Write num:400000,speed:5882352/s
 
 Read num:800000,speed:65509/s
+
+因为每个消息需要消费线程确认，确认后才会读取下一个，大量时间用于等待确认、唤醒分发线程上
 
 
 3）混合模式，四个队列，两个队列用channel方式写队列，两个队列使用缓冲文件方式，消费队列都用缓存文件方式；每个队列两个消费者，一个并发消费，一个顺序消费。
@@ -48,7 +52,7 @@ Provider将消息存入本地文件，如果超过文件最大容许的大小，
 引入源码或打成jar即可在项目中引用。
 
 #### 使用说明
-
+推荐的使用方式见以下代码：
 
 ```
 if(!FQTool.started()) {
@@ -57,11 +61,19 @@ if(!FQTool.started()) {
 }
 String queueDir = "dir for queue";
 FileQueue.Builder builder = new FileQueue.Builder(queueDir, "queue_name")
-        .maxFileNum(50).maxFileSize(16 * 1024 * 1024);
+				.maxFileNum(50)
+                .maxFileSize(16 * 1024 * 1024)
+                .bufferedPush(false)
+                .bufferedPoll(true);
 FileQueue fq = FQTool.create(builder);
-fq.addConsumer("consumer_name", true, new IMessageHandler() {...});
+fq.addConsumer("sequential_consumer", true, (msg) -> {...});
 ```
 
+如果不在意消费的顺序性，添加消费者时将顺序性设为false。
+
+```
+fq.addConsumer("conncurrent_consumer", false, (msg) -> {...});
+```
 
 #### 参与贡献
 

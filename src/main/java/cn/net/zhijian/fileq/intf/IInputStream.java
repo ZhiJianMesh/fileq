@@ -54,12 +54,6 @@ public interface IInputStream extends IFile {
     }
 
     /**
-     * How many bytes left
-     * @return left bytes
-     */
-    int available();
-
-    /**
      * Get reading position
      * @return position
      */

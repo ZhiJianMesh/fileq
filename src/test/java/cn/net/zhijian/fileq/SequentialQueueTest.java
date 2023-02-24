@@ -29,7 +29,7 @@ public class SequentialQueueTest extends TestBase {
     
     public static void main(String[] args) {
         LOG.debug("Start test");
-        ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         long start;
         long end;
         Timer checkOver = new Timer("Checking");
@@ -43,7 +43,7 @@ public class SequentialQueueTest extends TestBase {
                 .maxFileNum(40)
                 .maxFileSize(8 * 1024 * 1024)
                 .bufferedPush(true)
-                .bufferedPoll(false);
+                .bufferedPoll(true);
         dispatcher.start();
         try {
             FileQueue fq = builder.build();

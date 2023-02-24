@@ -165,10 +165,10 @@ class ConcurrentReader implements IReader {
             
             if(!qFile.hasMore()) {
                 this.consumeState.save(qFile.readPos(), false);//write pos when idle
-                return null; //the writing file, wait new content
+                return null; //the writing file, wait for new content
             }
         } else if(qFile == null || !qFile.hasMore()) {
-            //old file, when reaching end point, open the next one
+            //old file, when the reaching end point, open next one
             FileUtil.closeQuietly(qFile);
             if((qFile = openNext()) == null) {
                 return null;
@@ -198,7 +198,7 @@ class ConcurrentReader implements IReader {
             } else {
                 qFile.read(content, 0, len);
             }
-            this.consumeState.save(qFile.readPos(), false);//write pos when idle
+            this.consumeState.save(qFile.readPos(), false);//write pos when idle,it occupies 1/3 time
             return generateMessage(len, content);
         } catch (IOException e) {
             LOG.error("Fail to read file {}", curFileName(), e);

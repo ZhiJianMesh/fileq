@@ -39,7 +39,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  */
 class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
-    private static final int WATI_TIME = 1 * 1000;
+    private static final int WAIT_TIME = 1 * 1000;
     
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
@@ -182,11 +182,13 @@ class Dispatcher extends Thread implements IDispatcher {
                 tracing = false;
                 /*
                  * In sequential mode, waste so much time here.
-                 * When handling a message, consumer often be blocked here.
+                 * When a message is in handling, dispatcher is blocked here.
+                 * After handling, lock is waked up.
+                 * Locked, waked up, again and again.
                  */
                 synchronized(lock) {
                     try {
-                        lock.wait(WATI_TIME);
+                        lock.wait(WAIT_TIME);
                     } catch (InterruptedException e) {
                     }
                 }
@@ -222,7 +224,7 @@ class Dispatcher extends Thread implements IDispatcher {
 
     @Override
     public void ready() {
-        if(tracing) { //Tracing,need not notify, notify is a high cost operation
+        if(tracing) { //Need not notify, notification is a high cost operation
             return;
         }
 
