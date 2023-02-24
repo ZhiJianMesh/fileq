@@ -198,7 +198,8 @@ class ConcurrentReader implements IReader {
             } else {
                 qFile.read(content, 0, len);
             }
-            this.consumeState.save(qFile.readPos(), false);//write pos when idle,it occupies 1/3 time
+            
+            //record read position in confirm
             return generateMessage(len, content);
         } catch (IOException e) {
             LOG.error("Fail to read file {}", curFileName(), e);
@@ -240,7 +241,7 @@ class ConcurrentReader implements IReader {
     }
 
     @Override
-    public void confirm(boolean ok) {
+    public void confirm(boolean ok) { //may be called in multi mthreads
         if(ok && qFile != null) {
             this.consumeState.save(qFile.readPos(), false);
         }

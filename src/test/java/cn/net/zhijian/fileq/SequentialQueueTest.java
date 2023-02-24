@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 
 import cn.net.zhijian.fileq.intf.IFile;
+import cn.net.zhijian.fileq.intf.IMessage;
+import cn.net.zhijian.fileq.intf.IMessageHandler;
+import cn.net.zhijian.fileq.intf.IReader;
 import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
@@ -26,17 +29,18 @@ public class SequentialQueueTest extends TestBase {
 
     private static CountDownLatch lock = new CountDownLatch(1);
 	private static long handleTime = System.currentTimeMillis();
+	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {
         LOG.debug("Start test");
-        ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        int threadNum = Runtime.getRuntime().availableProcessors();
+        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         long start;
         long end;
         Timer checkOver = new Timer("Checking");
-        int pushMsgNum = 0;
-        AtomicInteger pollMsgNum = new AtomicInteger(0);
+        int pushMsgNum = 0;        
         
-        Dispatcher dispatcher = new Dispatcher(threadPool);
+        Dispatcher dispatcher = new Dispatcher(threadPool, false);
         String dir = FileUtil.addPath(workDir, "queue1");
         FileQueue.Builder builder = new FileQueue.Builder(dir, "tt")
                 .dispatcher(dispatcher)
@@ -45,41 +49,27 @@ public class SequentialQueueTest extends TestBase {
                 .bufferedPush(true)
                 .bufferedPoll(true);
         dispatcher.start();
+        
         try {
             FileQueue fq = builder.build();
-            fq.addConsumer("consumerA", true, (msg) -> {
-            	handleTime = System.currentTimeMillis();
-            	if(msg.len() < 5) {
-            		LOG.error("Invalid message len {}", msg.len());
-            	}
-            	pollMsgNum.getAndIncrement();
-            	//LOG.debug("msg A:{}", new String(msg.message(), 0, msg.len()));
-                return true;
-            });
-            
-            fq.addConsumer("consumerB", true, (msg) -> {
-            	handleTime = System.currentTimeMillis();
-            	if(msg.len() < 5) {
-            		LOG.error("Invalid message len {}", msg.len());
-            	}
-                pollMsgNum.getAndIncrement();
-            	//LOG.debug("msg B:{}", new String(msg.message(), 0, msg.len()));
-                return true;
-            });
+            for(int i = 0; i < threadNum * 2; i++) {
+                String name = "consumer_" + i;
+                fq.addConsumer(name, true, new MessageHandler(name));
+            }
             
             byte[] content = new byte[10];
             byte[] s = "aaaaaa".getBytes();
-            System.arraycopy(s, 0, content, 0, s.length);
+            System.arraycopy(s, 0, content, Integer.BYTES, s.length);
             
             start = System.currentTimeMillis();
             for(int i = 0; i < MSG_NUM; i++) {
-                IFile.encodeInt(content, i, s.length);
+                IFile.encodeInt(content, i, 0);
                 fq.push(content);
                 pushMsgNum++;
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            LOG.debug("Push num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
@@ -92,7 +82,7 @@ public class SequentialQueueTest extends TestBase {
             
             lock.await();
             interval = handleTime > start ? handleTime - start : 1;
-            LOG.debug("Read num:{},speed:{}/s,interval:{}ms, handled message num:{}",
+            LOG.debug("Poll num:{},speed:{}/s,interval:{}ms, handled message num:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * dispatcher.handledMsgNum()) / interval,
             		interval,
@@ -104,5 +94,34 @@ public class SequentialQueueTest extends TestBase {
         checkOver.cancel();
         threadPool.shutdown();
         System.exit(0);
+    }
+    
+    private static class MessageHandler implements IMessageHandler {
+        private final String queueName;
+        private int preNo = -1;
+        
+        public MessageHandler(String queueName) {
+            this.queueName = queueName;
+        }
+        
+        @Override
+        public boolean handle(IMessage msg, IReader reader) {
+            handleTime = System.currentTimeMillis();
+            if(msg.len() != 10) {
+                LOG.error("Invalid message len {} in {}", msg.len(), queueName);
+            }
+            int no = IFile.parseInt(msg.message(), 0);
+            if(no < 0 || no >= MSG_NUM) {
+                LOG.error("Invalid msg no {} in {}", no, queueName);
+            } else if(preNo + 1 != no) {
+                if(preNo >= 0 && preNo != MSG_NUM - 1) {
+                    LOG.error("Invalid msg no {}, preNo:{} in {}", no, preNo, queueName);
+                }
+            }
+            preNo = no;
+            pollMsgNum.getAndIncrement();
+            reader.confirm(true);
+            return true;
+        } 
     }
 }

@@ -42,6 +42,9 @@ class Dispatcher extends Thread implements IDispatcher {
     private static final int WAIT_TIME = 1 * 1000;
     
     private final ExecutorService threadPool;
+	//auto confirmed, needn't call reader.confirm in message handler
+	//useful when message handler is asynchronized
+    private final boolean autoConfirm;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
     private long totalMsgNum = 0L;
@@ -89,7 +92,10 @@ class Dispatcher extends Thread implements IDispatcher {
         
         public void handle(IMessage msg) {
             try {
-                reader.confirm(handler.handle(msg));
+                boolean result = handler.handle(msg, reader);
+                if(autoConfirm) {
+                    reader.confirm(result);
+                }
             } catch(Exception e) { //catch all exceptions to avoid thread crashes
                 LOG.error("Fail to handle msg from queue({}) in {}", name, queueName, e);
             }
@@ -151,8 +157,9 @@ class Dispatcher extends Thread implements IDispatcher {
         }
     }
     
-    public Dispatcher(ExecutorService threadPool) {
+    public Dispatcher(ExecutorService threadPool, boolean autoConfirm) {
         this.threadPool = threadPool;
+        this.autoConfirm = autoConfirm;
     }
     
     @Override

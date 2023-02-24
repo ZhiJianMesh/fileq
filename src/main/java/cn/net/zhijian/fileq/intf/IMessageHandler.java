@@ -27,8 +27,8 @@ public interface IMessageHandler {
      *  process msg one by one of a queue,
      *  if return true, will handle the next one,
      *  or will not confirm the message
-     * @param writer
-     *  If failed to handle the message, you can write it back
+     * @param reader
+     *  If failed to handle the message, you can call reader.confirm(false)
      */
-    public boolean handle(IMessage msg);
+    public boolean handle(IMessage msg, IReader reader);
 }

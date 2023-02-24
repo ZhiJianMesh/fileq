@@ -97,10 +97,10 @@ public final class FileQueue implements IFile {
     /**
      * Add a consumer to dispatcher
      * @param name consumer name
-     * @param handler message handler
      * @param sequential
      *     If true, each message is handled one by one, until it was confirmed.
      *     If false, messages are handled concurrently, and don't care about result
+     * @param handler message handler
      * @throws FQException
      */
     public synchronized void addConsumer(String name, boolean sequential,
@@ -214,10 +214,11 @@ public final class FileQueue implements IFile {
         /**
          * Create a dispatcher
          * @param threadPool thread pool
+         * @param autoConfirm auto confirm each message after handling
          * @return builder
          */
-        Builder createDispatcher(ExecutorService threadPool) {
-            this.dispatcher = new Dispatcher(threadPool);
+        Builder createDispatcher(ExecutorService threadPool, boolean autoConfirm) {
+            this.dispatcher = new Dispatcher(threadPool, autoConfirm);
             return this;
         }
         

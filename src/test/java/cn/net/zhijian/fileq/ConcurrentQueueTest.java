@@ -47,7 +47,7 @@ public class ConcurrentQueueTest extends TestBase {
         long start;
         long end;
         Timer checkOver = new Timer("Checking");
-        Dispatcher dispatcher = new Dispatcher(threadPool);
+        Dispatcher dispatcher = new Dispatcher(threadPool, true);
         String dir = FileUtil.addPath(workDir, "queue");
         FileQueue.Builder builder = new FileQueue.Builder(dir, "tt")
                 .dispatcher(dispatcher)
@@ -61,7 +61,7 @@ public class ConcurrentQueueTest extends TestBase {
         
         try {
             FileQueue fq = builder.build();
-            fq.addConsumer("consumerA", false, (msg) -> {
+            fq.addConsumer("consumerA", false, (msg, reader) -> {
                 recordConsumeTime();
             	if(msg.len() != 10) {
             		LOG.error("Invalid message len {}", msg.len());
@@ -70,7 +70,7 @@ public class ConcurrentQueueTest extends TestBase {
                 return true;
             });
             
-            fq.addConsumer("consumerB", false, (msg) -> {
+            fq.addConsumer("consumerB", false, (msg, reader) -> {
                 recordConsumeTime();
             	if(msg.len() != 10) {
             		LOG.error("Invalid message len {}", msg.len());
@@ -94,7 +94,7 @@ public class ConcurrentQueueTest extends TestBase {
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{},speed:{}/s, interval:{}ms", MSG_NUM, (1000L * MSG_NUM) / interval, interval);
+            LOG.debug("Push num:{},speed:{}/s, interval:{}ms", MSG_NUM, (1000L * MSG_NUM) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
@@ -107,7 +107,7 @@ public class ConcurrentQueueTest extends TestBase {
             
             lock.await();
             interval = lastHandleTime > firstHandleTime ? lastHandleTime - firstHandleTime : 1;
-            LOG.debug("Read num:{},speed:{}/s,interval:{}ms, handled message num:{}",
+            LOG.debug("Poll num:{},speed:{}/s,interval:{}ms, handled message num:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * handledMsgNum.get()) / interval,
             		interval,

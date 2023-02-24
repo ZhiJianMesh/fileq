@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import cn.net.zhijian.fileq.intf.IFile;
 import cn.net.zhijian.fileq.intf.IMessage;
 import cn.net.zhijian.fileq.intf.IMessageHandler;
+import cn.net.zhijian.fileq.intf.IReader;
 import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
@@ -42,7 +43,7 @@ public class MixedQueueTest extends TestBase {
         int pushMsgNum = 0;
         FileQueue[] fqs = new FileQueue[4];
         
-        Dispatcher dispatcher = new Dispatcher(threadPool);
+        Dispatcher dispatcher = new Dispatcher(threadPool, true);
         dispatcher.start();
         try {
             fqs[0] = createQueue("q1", "t1", false, true, dispatcher);
@@ -64,7 +65,7 @@ public class MixedQueueTest extends TestBase {
             }
             end = System.currentTimeMillis();
             long interval = end > start ? end - start : 1;
-            LOG.debug("Write num:{},speed:{}/s, interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            LOG.debug("Push num:{},speed:{}/s, interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
             
             checkOver.schedule(new TimerTask() {
 				@Override
@@ -77,7 +78,7 @@ public class MixedQueueTest extends TestBase {
             
             lock.await();
             interval = lastHandleTime > firstHandleTime ? lastHandleTime - firstHandleTime : 1;
-            LOG.debug("Read num:{},speed:{}/s, interval:{}ms, handled message:{}",
+            LOG.debug("Poll num:{},speed:{}/s, interval:{}ms, handled message:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * handledMsgNum.get()) / interval,
             		interval,
@@ -103,7 +104,7 @@ public class MixedQueueTest extends TestBase {
             .bufferedPoll(bufferedPoll);
         
         FileQueue fq = builder.build();
-        fq.addConsumer("concurrent", false, (msg) -> {
+        fq.addConsumer("concurrent", false, (msg, reader) -> {
             recordConsumeTime();
             if(msg.len() != 10) {
                 LOG.error("Invalid msg len {}", msg.len());
@@ -120,7 +121,7 @@ public class MixedQueueTest extends TestBase {
             private int preNo = -1;
             
             @Override
-            public boolean handle(IMessage msg) {
+            public boolean handle(IMessage msg, IReader reader) {
                 recordConsumeTime();
                 if(msg.len() != 10) {
                     LOG.error("Invalid message len {}", msg.len());
@@ -129,7 +130,7 @@ public class MixedQueueTest extends TestBase {
                 if(no < 0 || no >= MSG_NUM) {
                     LOG.error("Invalid msg no {}", no);
                 } else if(preNo + 1 != no) {
-                    if(preNo >= 0 && preNo != MSG_NUM) {
+                    if(preNo >= 0 && preNo != MSG_NUM - 1) {
                         LOG.error("Invalid msg no {}, preNo:{}", no, preNo);
                     }
                 }

@@ -30,9 +30,16 @@ public class FQTool {
     private static Dispatcher dispatcher = null;
     private static final List<FileQueue> queues = Collections.synchronizedList(new ArrayList<>());
     
-    public static void start(ExecutorService threadPool) {
+    /**
+     * 
+     * @param threadPool thread pool to execute message handler
+     * @param autoConfirm if true,dispatcher will call reader.confirm, otherwise
+     *   reader.confirm should be called in message handler. 
+     *   It's useful in asynchronized handler
+     */
+    public static void start(ExecutorService threadPool, boolean autoConfirm) {
         if(!started()) {
-            dispatcher = new Dispatcher(threadPool);
+            dispatcher = new Dispatcher(threadPool, autoConfirm);
             dispatcher.start();
         }
     }
@@ -41,6 +48,12 @@ public class FQTool {
         return dispatcher != null;
     }
     
+    /**
+     * Create a file queue
+     * @param builder builder
+     * @return FileQueue
+     * @throws FQException
+     */
     public static FileQueue create(FileQueue.Builder builder) throws FQException {
         if(!started()) {
             throw new FQException("FQTool not started");
@@ -82,6 +95,10 @@ public class FQTool {
         }
     }
     
+    /**
+     * Stop all file queues, dispatcher will be shutdown
+     * @throws IOException
+     */
     public static void stop() throws IOException {
         if(!started()) {
             return;
