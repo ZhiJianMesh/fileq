@@ -35,13 +35,14 @@ import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
  * Concurrent reader.
- * It will not confirm each consumer result.
+ * It will not confirm handle result.
  * When a message get out from the queue,
- * it will not roll back if consume failed.
+ * it will never roll back if consume failed.
  * If messages can be "handled concurrently", use it.
- * It means that the read-action is still in one thread.
+ * 
+ * Queues' read actions are all operated in one thread.
+ * 
  * @author Lgy
- * package private
  */
 class ConcurrentReader implements IReader {
     private static final Logger LOG = LogUtil.getInstance();
@@ -55,16 +56,20 @@ class ConcurrentReader implements IReader {
     protected ConsumeState consumeState;
     
     /**
-     * @param name consumer name
-     * @param writer queue writer
-     * @param buffered set buffered mode
+     * @param name Consumer name
+     * @param writer Queue writer
+     * @param buffered Set reader with buffered mode
+     * @param bufferedPos
+     *  Save consume-position to disk after `bufferedPos` times updating
      * @throws IOException
      */
-    public ConcurrentReader(String name, IWriter writer, boolean buffered) throws IOException {
+    public ConcurrentReader(String name, IWriter writer,
+            boolean buffered, int bufferedPos) throws IOException {
         this.name = name;
         this.writer = writer;
         this.buffered = buffered;
-        this.consumeState = new ConsumeState(FileUtil.addPath(writer.dir(), writer.name() + '_' + name));
+        String stateFile = FileUtil.addPath(writer.dir(), writer.name() + '_' + name);
+        this.consumeState = new ConsumeState(stateFile, bufferedPos);
         init();
     }
     
@@ -209,9 +214,9 @@ class ConcurrentReader implements IReader {
     }
     
     /**
-     * Read int value from file.
-     * Beacause executed in a single thread, so `intBuf` can be a member variable
-     * @return a int value
+     * Read a integer value from file.
+     * Because Executed in a single thread, so `intBuf` can be a member variable
+     * @return An integer value
      * @throws IOException
      */
     private int readInt() throws IOException {
@@ -223,8 +228,8 @@ class ConcurrentReader implements IReader {
 
 	/**
      * Create a new buffer to save message,
-     * if consumer in multithreads, create a new buffer each time.
-     * @param len
+     * if consumer in multi-threads, create a new buffer each time.
+     * @param len length of the message to be read
      * @return buffer
      */
     protected byte[] getBuffer(int len) {
@@ -232,8 +237,8 @@ class ConcurrentReader implements IReader {
     }
 
     /**
-     * generate a message with the content from file, and send it to handlers
-     * @param content buffer to receive the message
+     * Generate a message with the content from file, and send it to handlers
+     * @param content Buffer to receive the message
      * @return message
      */
     protected IMessage generateMessage(int len, byte[] content) {
@@ -241,7 +246,7 @@ class ConcurrentReader implements IReader {
     }
 
     @Override
-    public void confirm(boolean ok) { //may be called in multi mthreads
+    public void confirm(boolean ok) { //called in multi-threads
         if(ok && qFile != null) {
             this.consumeState.save(qFile.readPos(), false);
         }

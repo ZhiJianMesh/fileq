@@ -23,14 +23,14 @@ import java.nio.channels.FileChannel;
 import cn.net.zhijian.fileq.intf.IInputStream;
 
 /**
- * Read message from queue-file.
- * 1)BufferedInputStream has so many problems
- *   when read and write at the same file;
- * 2)FileChannel is fast and easy to use, more compatible;
+ * Read message from a channel.
+ * 1)BufferedInputStream is very fast, but it's hard to control,
+ *   if you want a high performance, set bufferdPoll mode to use it;
+ * 2)FileChannel is fast and easy to use, and more compatible;
  * 3)MappedByteBuffer is the most efficient way.
- *   But it has latency to store data to disk,and it's hard to close.
+ *   But it has latency to save data to disk,and it's very hard to close.
  *   In android, there are compatible problems.
- *   So give it up;
+ *   So give it up.
  * @author liguoyong77@sina.com
  *
  */

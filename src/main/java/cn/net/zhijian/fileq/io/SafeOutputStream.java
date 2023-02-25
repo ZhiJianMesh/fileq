@@ -29,7 +29,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  *   If don't care about it, set bufferedPush mode to use it;
  * 2)FileChannel is fast, easy to use, and more compatible.
  * 3)MappedByteBuffer is the most efficient way.
- *   But it has latency to store data to disk,and it's hard to close.
+ *   But it has latency to store data to disk,and it's very hard to close.
  *   In android, there are compatible problems.
  *   So give it up;
  * @author liguoyong77@sina.com
@@ -82,6 +82,9 @@ public class SafeOutputStream implements IOutputStream {
         }
     }
 
+    /**
+     * Needn't flush,all are saved to disk right now
+     */
     @Override
     public void flush() throws IOException {
     }

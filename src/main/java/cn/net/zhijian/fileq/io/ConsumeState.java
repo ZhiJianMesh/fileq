@@ -27,7 +27,12 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
 import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
- * Consumer state
+ * Consume state, record consume position.
+ * It will save position info to disk every 1000 times,
+ * or it exceeds 1000ms until fore saving disk.
+ * The position is written sequential, the last one is the real one. 
+ * It is a high cost operation to save small content to a file.
+ * It occupies about 1/3 time when reading a message.
  * @author Lgy
  *
  */
@@ -35,19 +40,20 @@ public class ConsumeState implements Closeable, IFile {
     private static final Logger LOG = LogUtil.getInstance();
     private static final int MAX_SAVE_INTERVAL = 1000;
     //max problem is that it may cause re-consume 1000 messages
-    private static final int MAX_BUFFER_TIMES = 1000;
     private static final int MAX_SIZE = 100 * 1024 * Integer.BYTES * 2 + FILE_HEAD_LEN;
 
     private final String fileName;
+    private final int maxBufferedTimes;
     private IOutputStream stateFile;
     private long recordTime = System.currentTimeMillis(); //save file time
     private int fileNo = 0;
     private int readPos = FILE_HEAD_LEN;
-    private int bufferTimes = 0;
+    private int bufferedTimes = 0;
     private byte[] buf = new byte[Integer.BYTES * 2];
 
-    public ConsumeState(String fileName) throws IOException {
+    public ConsumeState(String fileName, int bufferedTimes) throws IOException {
         this.fileName = fileName;
+        this.maxBufferedTimes = bufferedTimes;
         File f = new File(fileName);
 
         if(!f.exists()) { //if not exists, all start from 0
@@ -61,14 +67,14 @@ public class ConsumeState implements Closeable, IFile {
             byte[] head = new byte[FILE_HEAD_LEN];
             int readLen = fis.read(head);
             if(readLen < FILE_HEAD_LEN) {
-                break load;
+                break load;//invalid state file
             }
             //MAGIC(5) + ver(1) + fileNo(4)
             int ver = ((int)head[MAGIC.length]) & 0xff;
             fileNo = IFile.parseInt(head, MAGIC.length + 1);
             if (ver != VER || fileNo != 0
                 || !Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length)) {
-                break load;
+                break load; //invalid state file
             }
             
             //continue reading until the last one
@@ -109,16 +115,16 @@ public class ConsumeState implements Closeable, IFile {
     }
 
     public void save(int fileNo, int readPos, boolean force) {
-        this.bufferTimes++;
+        this.bufferedTimes++;
         this.fileNo = fileNo;
         this.readPos = readPos;
-        save(force || this.bufferTimes >= MAX_BUFFER_TIMES);
+        save(force || this.bufferedTimes >= maxBufferedTimes);
     }
 
     public void save(int readPos, boolean force) {
-        this.bufferTimes++;
+        this.bufferedTimes++;
         this.readPos = readPos;
-        save(force || this.bufferTimes >= MAX_BUFFER_TIMES);
+        save(force || this.bufferedTimes >= maxBufferedTimes);
     }
 
     public void save(boolean force) {
@@ -129,18 +135,22 @@ public class ConsumeState implements Closeable, IFile {
             }
         }
         recordTime = cur;
-        bufferTimes = 0;
+        bufferedTimes = 0;
 
         synchronized(stateFile) {
             try {
-                if(stateFile.size() >= MAX_SIZE) { //if to large, rewrite it
+                if(stateFile.size() >= MAX_SIZE) { //if too large, rewrite it
                     stateFile.close();
                     init(fileNo, readPos);
                 } else {
-                    IFile.encodeInt(buf, fileNo, 0); //reduce write-operation one time
+                    /*
+                     * Merge 2 integer values into a buffer
+                     * to reduce write-operation
+                     */
+                    IFile.encodeInt(buf, fileNo, 0);
                     IFile.encodeInt(buf, readPos, Integer.BYTES);
                     stateFile.write(buf);
-                    stateFile.flush();
+                    stateFile.flush(); //It's very important, save it to disk right now
                 }
             } catch (IOException e) {
                 LOG.error("Fail to save consumer {} state", this.fileName, e);

@@ -19,8 +19,8 @@ import java.io.IOException;
 
 public interface IInputStream extends IFile {
     /**
-     * read content from the stream,
-     * @param buf should promise it has enough memory
+     * Read content from the stream,
+     * @param buf Buffer,should promise it has enough memory to save the message
      * @return real read length
      * @throws IOException
      */
@@ -29,9 +29,9 @@ public interface IInputStream extends IFile {
     int read(byte[] buff, int offset, int len) throws IOException;
     
     /**
-     * skip n bytes
-     * @param n the number of bytes to skip
-     * @return the real length skipped
+     * Skip n bytes
+     * @param n The number of bytes to skip
+     * @return The real length skipped
      * @throws IOException
      */
     default long skip(int n) throws IOException {
@@ -54,13 +54,13 @@ public interface IInputStream extends IFile {
     }
 
     /**
-     * Get reading position
+     * Get the reading position
      * @return position
      */
     int readPos();
     
     /**
-     * @return whether the stream has more content or not
+     * @return Whether the stream has more content or not
      */
     boolean hasMore();
     

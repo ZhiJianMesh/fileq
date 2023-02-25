@@ -33,7 +33,8 @@ public interface IWriter extends IFile {
     public void write(byte[] msg, int offset, int len, boolean chkHash) throws FQException;
     
     /**
-     * Hasten writer to flush data to input stream when idle a moment.
+     * Hasten writer to flush data to stream
+     * when dispatcher is idle a moment.
      */
     void hasten();
 }

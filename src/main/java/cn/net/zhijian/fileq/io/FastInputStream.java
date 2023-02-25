@@ -24,6 +24,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
 
 /**
  * Read message from queue-files use buffered input stream.
+ * It can obviously improve the performance of reading.
  * @author liguoyong77@sina.com
  *
  */
@@ -76,7 +77,7 @@ public class FastInputStream implements IInputStream {
         }
 
         try {
-            //available() is a IO operation,
+            //available() is a high-cost IO operation,
             //Here,needn't a precise value, so use a cached one
             available = bis.available();
             return available > 0;

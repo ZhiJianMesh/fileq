@@ -23,12 +23,12 @@ package cn.net.zhijian.fileq.intf;
 public interface IMessage {
     /**
      * Message body
-     * @return body
+     * @return body Message body, must use len() to identify its length
      */
     byte[] message();
     /**
-     * The message real length
-     * @return length
+     * The real message length
+     * @return length Real length of message body
      */
     int len();
     

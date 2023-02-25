@@ -18,7 +18,7 @@ package cn.net.zhijian.fileq.intf;
 import java.io.Closeable;
 
 /**
- * queue file
+ * Queue file
  * @author Lgy
  *
  */
@@ -55,7 +55,7 @@ public interface IFile extends Closeable {
     
     /**
      * Encode a integer value into buff
-     * @param buf buffer to save integer value
+     * @param buf The buffer to save integer value
      * @param v value
      * @param pos offset
      */

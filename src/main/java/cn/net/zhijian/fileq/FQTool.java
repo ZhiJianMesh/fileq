@@ -32,10 +32,10 @@ public class FQTool {
     
     /**
      * 
-     * @param threadPool thread pool to execute message handler
-     * @param autoConfirm if true,dispatcher will call reader.confirm, otherwise
-     *   reader.confirm should be called in message handler. 
-     *   It's useful in asynchronized handler
+     * @param threadPool Thread pool to execute message handler
+     * @param autoConfirm If true,dispatcher will call reader.confirm, otherwise
+     *   reader.confirm should be called in message handler yourself. 
+     *   It's useful in asynchronous handler
      */
     public static void start(ExecutorService threadPool, boolean autoConfirm) {
         if(!started()) {
@@ -49,7 +49,9 @@ public class FQTool {
     }
     
     /**
-     * Create a file queue
+     * Create a file queue.
+     * To split a queue into many small queues is recommended.
+     * More queues more efficient when they are consumed.
      * @param builder builder
      * @return FileQueue
      * @throws FQException
@@ -58,19 +60,19 @@ public class FQTool {
         if(!started()) {
             throw new FQException("FQTool not started");
         }
-        
+
         FileQueue fq = get(builder.name);
         if(fq != null) {
             throw new FQException("FileQueue `" + builder.name + "` exists");
         }
-        
+
         builder.dispatcher(dispatcher);
         fq = builder.build();
         queues.add(fq);
         
         return fq;
     }
-    
+
     public static FileQueue get(String name) {
         for(FileQueue fq : queues) {
             if(fq.name.equals(name)) {
@@ -79,7 +81,7 @@ public class FQTool {
         }
         return null;
     }
-    
+
     public static void remove(String name) {
         int idx = -1;
         
@@ -94,9 +96,9 @@ public class FQTool {
             queues.remove(idx);
         }
     }
-    
+
     /**
-     * Stop all file queues, dispatcher will be shutdown
+     * Stop all file queues, the dispatcher will be shutdown
      * @throws IOException
      */
     public static void stop() throws IOException {

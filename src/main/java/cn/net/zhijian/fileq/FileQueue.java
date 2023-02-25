@@ -44,6 +44,7 @@ public final class FileQueue implements IFile {
     //only one writer, more than one consumers
     private IWriter writer;
     private final boolean bufferedPoll;
+    private final int bufferedPos;
     public final String name;
     
     private FileQueue(Builder builder) throws FQException {
@@ -56,14 +57,14 @@ public final class FileQueue implements IFile {
         this.dispatcher = builder.dispatcher;
         this.name = builder.name;
         this.bufferedPoll = builder.bufferedPoll;
+        this.bufferedPos = builder.bufferedPos;
     }
 
     /**
      * Write message to file queue, only one thread can write at the same time
-     * @param msg
-     * Message should be written, FileQueue don't care the content
-     * @param offset
-     * @param len
+     * @param msg Message should be written, FileQueue doesn't care the content
+     * @param offset offset of the message buffer
+     * @param len message length
      * @throws FQException
      * @throws IOException
      */
@@ -98,8 +99,8 @@ public final class FileQueue implements IFile {
      * Add a consumer to dispatcher
      * @param name consumer name
      * @param sequential
-     *     If true, each message is handled one by one, until it was confirmed.
-     *     If false, messages are handled concurrently, and don't care about result
+     *     If true, each message is handled one by one, until it's confirmed.
+     *     If false, messages are handled concurrently, and doesn't care about result
      * @param handler message handler
      * @throws FQException
      */
@@ -108,9 +109,9 @@ public final class FileQueue implements IFile {
         IReader reader;
         try {
             if(sequential) {
-                reader = new SequentialReader(name, writer, dispatcher, bufferedPoll);
+                reader = new SequentialReader(name, writer, dispatcher, bufferedPoll, bufferedPos);
             } else {
-                reader = new ConcurrentReader(name, writer, bufferedPoll);
+                reader = new ConcurrentReader(name, writer, bufferedPoll, bufferedPos);
             }
         } catch(IOException e) {
             throw new FQException(e);
@@ -119,7 +120,7 @@ public final class FileQueue implements IFile {
     }
 
     /**
-     * Remove one consumer
+     * Remove a consumer
      * @param name Consumer name
      */
     public synchronized void rmveConsumer(String name) {
@@ -144,13 +145,13 @@ public final class FileQueue implements IFile {
         private int maxFileNum = 100;
         private boolean bufferedPush = false;
         private boolean bufferedPoll = false;
+        private int bufferedPos = 1024;
         private IDispatcher dispatcher;
         
         /**
          * 
-         * @param dir queue dir
-         * @param name queue file's name, all start with 'name',
-         *  and with a number tail to identify the file no.
+         * @param dir Queue dir
+         * @param name Queue name.Files under the queue are named with 'name' + fileNo
          */
         public Builder(String dir, String name) {
             this.dir = dir;
@@ -159,9 +160,9 @@ public final class FileQueue implements IFile {
         
         /**
          * Set max queue file size.
-         * Too large file is not a good idea, it should be smaller than 4G.
-         * @param size file size
-         * @return builder
+         * Too large file is not a good idea, it must be smaller than 4G.
+         * @param size File size
+         * @return Builder
          */
         public Builder maxFileSize(int size) {
             this.maxFileSize = size;
@@ -172,7 +173,7 @@ public final class FileQueue implements IFile {
          * Max number of files under a queue directory.
          * Too many files is not a good idea, it should be smaller than 500.
          * @param num num of files
-         * @return builder
+         * @return Builder
          */
         public Builder maxFileNum(int num) {
             this.maxFileNum = num;
@@ -180,10 +181,27 @@ public final class FileQueue implements IFile {
         }
         
         /**
-         * Set buffered push mode, it can improve the performance about ten times.
+         * After each message polled out, will record consume position to a file.
+         * It's high cost to write it directly to disk each time.
+         * It occupies more than 1/3 time of the whole poll-processing.
+         * So, buffer it into 2 integer variables, after bufferedPos times,
+         * then, save them to disk.
+         * It improves the performance, but it lead in a risk.
+         * If the program crashed, re-start again, it will consume `bufferedPos`
+         * messages repeatedly.
+         * @param bufferedPos 
+         * @return Builder
+         */
+        public Builder bufferedPos(int bufferedPos) {
+            this.bufferedPos = bufferedPos;
+            return this;
+        }
+        
+        /**
+         * Set buffered push mode, It can improve the performance about ten times.
          * But it is not a good idea, because the latency of writing disk.
          * @param bufferedPush Whether pushed content is buffered or written to disk right now.
-         * @return builder
+         * @return Builder
          */
         public Builder bufferedPush(boolean bufferedPush) {
             this.bufferedPush = bufferedPush;
@@ -192,9 +210,9 @@ public final class FileQueue implements IFile {
         
         /**
          * Set buffered poll mode.
-         * It can improve the poll performance.
-         * @param buffered Whether pre-read or read as need.
-         * @return builder
+         * It can improve the poll performance, but it's not obvious when too few queues.
+         * @param buffered Whether pre-read into buffer enabled or not.
+         * @return Builder
          */
         public Builder bufferedPoll(boolean buffered) {
             this.bufferedPoll = buffered;
@@ -204,7 +222,7 @@ public final class FileQueue implements IFile {
         /**
          * Set messages dispatcher
          * @param dispatcher messages dispatcher
-         * @return builder
+         * @return Builder
          */
         Builder dispatcher(IDispatcher dispatcher) {
             this.dispatcher = dispatcher;
@@ -214,8 +232,8 @@ public final class FileQueue implements IFile {
         /**
          * Create a dispatcher
          * @param threadPool thread pool
-         * @param autoConfirm auto confirm each message after handling
-         * @return builder
+         * @param autoConfirm auto confirm each message after handled
+         * @return Builder
          */
         Builder createDispatcher(ExecutorService threadPool, boolean autoConfirm) {
             this.dispatcher = new Dispatcher(threadPool, autoConfirm);

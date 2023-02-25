@@ -29,14 +29,14 @@ public interface IDispatcher {
     void ready();
     
     /**
-     * Get the minimal file no of a queue
+     * Get the minimal file no of the queue
      * @param queueName
      * @return
      */
     int minFileNo(String queueName);
     
     /**
-     * Get handled message number of a all queues 
+     * Get handled message number of all queues 
      * @return
      */
     long handledMsgNum();
@@ -48,7 +48,7 @@ public interface IDispatcher {
     void rmvConsumers(String queueName);
     
     /**
-     * Stop the thread, and close all readers
+     * Stop the thread, and close all consumers
      */
     void shutdown();
 }

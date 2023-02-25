@@ -93,8 +93,8 @@ class Writer implements IWriter {
         int fileNum = 0;
         
         /*
-         * trace all valid queue files
-         * to find the minimum and the maximum fileNo
+         * Trace all valid queue files
+         * to find the minimum and maximum fileNo
          */        
         if(files != null && files.length > 0) {
             int ver;

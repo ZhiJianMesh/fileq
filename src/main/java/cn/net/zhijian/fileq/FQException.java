@@ -21,7 +21,7 @@ package cn.net.zhijian.fileq;
  *
  */
 public class FQException extends Exception {
-    private static final long serialVersionUID = 798889999L;
+    private static final long serialVersionUID = 28188152046419149L;
 
     public FQException() {
         super();

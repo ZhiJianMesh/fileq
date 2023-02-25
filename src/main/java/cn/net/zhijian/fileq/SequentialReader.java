@@ -33,7 +33,7 @@ class SequentialReader extends ConcurrentReader {
     private static final int MIN_RETRY_INTERVAL = 500;
     private static final int MAX_RETRY_INTERVAL = 10 * 1000;
     
-    //The state of one message
+    //The state of the queue's consumer
     private static enum MsgState {
         IDLE, //no message
         WAITCONFIRM, //the last message handled, but not confirmed
@@ -41,21 +41,24 @@ class SequentialReader extends ConcurrentReader {
     };
     
     private int retryInterval = MIN_RETRY_INTERVAL; //ms
-    private long retriedAt; //ms，上次尝试时间点
+    private long retriedAt; //ms, fore retry time
     private final IDispatcher dispatcher;
 
     private SequentialMessage msg = new SequentialMessage(DEFAULT_BUF_LEN);
     protected MsgState state = MsgState.IDLE;
     
     /**
-     * @param name consumer name
-     * @param writer message wirter
-     * @param dispatcher message dispatcher
-     * @param buffered buffered mode
+     * @param name Consumer name
+     * @param writer Message writer
+     * @param dispatcher Message dispatcher
+     * @param buffered Buffered mode
+     * @param bufferedPos
+     *  Save consume-position to disk after `bufferedPos` times updating
      * @throws IOException
      */
-    public SequentialReader(String name, IWriter writer, IDispatcher dispatcher, boolean buffered) throws IOException {
-        super(name, writer, buffered);
+    public SequentialReader(String name, IWriter writer, IDispatcher dispatcher,
+            boolean buffered, int bufferedPos) throws IOException {
+        super(name, writer, buffered, bufferedPos);
         this.dispatcher = dispatcher;
     }
 

@@ -30,7 +30,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
  * Receive writer's notification, read a message,
- * then send it to consumers' thread.
+ * then send it to consumers' thread pool.
  * There is no more processing in it, only distribute.
  * So,in Dispatcher,one thread handles all queues' read-action.
  * 
@@ -42,8 +42,8 @@ class Dispatcher extends Thread implements IDispatcher {
     private static final int WAIT_TIME = 1 * 1000;
     
     private final ExecutorService threadPool;
-	//auto confirmed, needn't call reader.confirm in message handler
-	//useful when message handler is asynchronized
+	//auto confirmed, needn't call reader.confirm in message handler.
+	//Set it to false when message handler is asynchronous.
     private final boolean autoConfirm;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
@@ -51,7 +51,7 @@ class Dispatcher extends Thread implements IDispatcher {
     private boolean goon = true; //continue to run or not
     /* 
      * Can't use ReentrantLock, because lock and unlock of ReentrantLock
-     * must be called in the same thread. Ant ff lock twice
+     * must be called in the same thread. And if lock twice
      * in the same thread, it will return right now.
      */
     private Object lock = new Object();
@@ -186,13 +186,13 @@ class Dispatcher extends Thread implements IDispatcher {
             }
 
             if(msgNum == 0) {
-                tracing = false;
                 /*
-                 * In sequential mode, waste so much time here.
-                 * When a message is in handling, dispatcher is blocked here.
-                 * After handling, lock is waked up.
+                 * In sequential mode, more than 75% of the time was wasted here.
+                 * When a message is in processing, dispatcher is blocked here.
+                 * After handled, lock is waked up.
                  * Locked, waked up, again and again.
                  */
+                tracing = false;
                 synchronized(lock) {
                     try {
                         lock.wait(WAIT_TIME);
@@ -200,7 +200,8 @@ class Dispatcher extends Thread implements IDispatcher {
                     }
                 }
                 tracing = true;
-
+                t2 = System.nanoTime();
+                
                 for(Map.Entry<String, Queue> q : queues.entrySet()) {
                     queue = q.getValue();
                     for(Consumer c : queue.consumers) {
@@ -231,7 +232,7 @@ class Dispatcher extends Thread implements IDispatcher {
 
     @Override
     public void ready() {
-        if(tracing) { //Need not notify, notification is a high cost operation
+        if(tracing) { //Needn't notify, notification is a high cost operation
             return;
         }
 
