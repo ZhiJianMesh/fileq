@@ -34,7 +34,7 @@ public class MixedQueueTest extends TestBase {
 	private static AtomicInteger handledMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {
-        int threadNum = Runtime.getRuntime().availableProcessors() * 2;
+        int threadNum = Runtime.getRuntime().availableProcessors();
         LOG.debug("Start test, thread num {}", threadNum);
         ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         long start;
@@ -45,16 +45,17 @@ public class MixedQueueTest extends TestBase {
         
         Dispatcher dispatcher = new Dispatcher(threadPool, true);
         dispatcher.start();
+        
         try {
             fqs[0] = createQueue("q1", "t1", false, true, dispatcher);
             fqs[1] = createQueue("q1", "t2", false, true, dispatcher);
             fqs[2] = createQueue("q2", "t1", true, true, dispatcher);
             fqs[3] = createQueue("q2", "t2", true, true, dispatcher);
-            
+
             byte[] content = new byte[10];
             byte[] s = "aaaaaa".getBytes();
             System.arraycopy(s, 0, content, Integer.BYTES, s.length);
-            
+
             start = System.currentTimeMillis();
             for(int i = 0; i < MSG_NUM; i++) {
                 IFile.encodeInt(content, i, 0);

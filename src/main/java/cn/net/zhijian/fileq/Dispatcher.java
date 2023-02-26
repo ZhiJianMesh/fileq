@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.LockSupport;
 
 import org.slf4j.Logger;
 
@@ -39,7 +40,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  */
 class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
-    private static final int WAIT_TIME = 1 * 1000;
+    private static final long WAIT_TIME = 1 * 1000 * 1000 * 1000; //1 second
     
     private final ExecutorService threadPool;
 	//auto confirmed, needn't call reader.confirm in message handler.
@@ -49,12 +50,6 @@ class Dispatcher extends Thread implements IDispatcher {
 
     private long totalMsgNum = 0L;
     private boolean goon = true; //continue to run or not
-    /* 
-     * Can't use ReentrantLock, because lock and unlock of ReentrantLock
-     * must be called in the same thread. And if lock twice
-     * in the same thread, it will return right now.
-     */
-    private Object lock = new Object();
     private volatile boolean tracing = true; 
     
     private class Consumer implements Closeable {
@@ -73,11 +68,11 @@ class Dispatcher extends Thread implements IDispatcher {
         public String name() {
             return name;
         }
-        
+
         public int curFileNo() {
             return reader.curFileNo();
         }
-        
+
         public void close() {
             try {
                 this.reader.close();
@@ -85,11 +80,11 @@ class Dispatcher extends Thread implements IDispatcher {
                 LOG.error("Fail to close consumer reader {}.{}", queueName, name, e);
             }
         }
-        
+
         public void hasten() {
             this.reader.hasten();
         }
-        
+
         public void handle(IMessage msg) {
             try {
                 boolean result = handler.handle(msg, reader);
@@ -187,21 +182,26 @@ class Dispatcher extends Thread implements IDispatcher {
 
             if(msgNum == 0) {
                 /*
-                 * In sequential mode, more than 75% of the time was wasted here.
-                 * When a message is in processing, dispatcher is blocked here.
+                 * In sequential mode,
+                 * When a message is in processing, dispatcher will be blocked here.
                  * After handled, lock is waked up.
-                 * Locked, waked up, again and again.
+                 * Locked, waked up, again and again, waste too much time.
+                 * 
+                 * Can't use ReentrantLock,because lock and unlock of ReentrantLock
+                 * must be called in the same thread. And if call lock() twice
+                 * in the same thread, it will return right now.
+                 * 
+                 * If use object.wait,
+                 * more than 75% of the time was wasted here.
+                 * 
+                 * If use LockSupport.park,
+                 * more than 30% of the time was wasted here.
+                 * So, use LockSupport.park to instead object.wait.
                  */
                 tracing = false;
-                synchronized(lock) {
-                    try {
-                        lock.wait(WAIT_TIME);
-                    } catch (InterruptedException e) {
-                    }
-                }
+                LockSupport.parkNanos(WAIT_TIME);
                 tracing = true;
-                t2 = System.nanoTime();
-                
+
                 for(Map.Entry<String, Queue> q : queues.entrySet()) {
                     queue = q.getValue();
                     for(Consumer c : queue.consumers) {
@@ -225,9 +225,7 @@ class Dispatcher extends Thread implements IDispatcher {
     @Override
     public void shutdown() {
         goon = false;
-        synchronized(lock) {
-            lock.notifyAll();
-        }
+        LockSupport.unpark(this);
     }
 
     @Override
@@ -235,10 +233,7 @@ class Dispatcher extends Thread implements IDispatcher {
         if(tracing) { //Needn't notify, notification is a high cost operation
             return;
         }
-
-        synchronized(lock) {
-            lock.notifyAll();
-        }
+        LockSupport.unpark(this);
     }
 
     @Override
@@ -285,8 +280,7 @@ class Dispatcher extends Thread implements IDispatcher {
             LOG.info("Queue({}) not exists", queueName);
             return;
         }
-        
-        queue.remove(name);        
+        queue.remove(name);
     }
     
     @Override

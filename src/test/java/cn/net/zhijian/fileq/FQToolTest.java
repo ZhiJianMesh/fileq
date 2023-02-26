@@ -14,7 +14,7 @@ public class FQToolTest {
     private static final Logger LOG = LogUtil.getInstance();
     
     public static void main(String[] args) throws Exception {
-        CountDownLatch counter = new CountDownLatch(N);
+        CountDownLatch counter = new CountDownLatch(N * 2);
         if(!FQTool.started()) {
             ExecutorService threadPool = Executors.newCachedThreadPool();
             FQTool.start(threadPool, true/*如果在IMessageHandler中confirm，此处传false*/);

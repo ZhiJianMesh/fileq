@@ -1,6 +1,5 @@
 package cn.net.zhijian.fileq;
 
-import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -9,12 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-import ch.qos.logback.core.util.StatusPrinter;
 import cn.net.zhijian.fileq.intf.IFile;
 import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
@@ -43,7 +37,8 @@ public class ConcurrentQueueTest extends TestBase {
     
     public static void main(String[] args) {
         LOG.debug("Start test");
-        ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        int threadNum = Runtime.getRuntime().availableProcessors();
+        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         long start;
         long end;
         Timer checkOver = new Timer("Checking");
@@ -53,7 +48,7 @@ public class ConcurrentQueueTest extends TestBase {
                 .dispatcher(dispatcher)
                 .maxFileNum(100)
                 .maxFileSize(8 * 1024 * 1024)
-                .bufferedPush(true)
+                .bufferedPush(false)
                 .bufferedPoll(true);
         
         dispatcher.start();
@@ -61,23 +56,17 @@ public class ConcurrentQueueTest extends TestBase {
         
         try {
             FileQueue fq = builder.build();
-            fq.addConsumer("consumerA", false, (msg, reader) -> {
-                recordConsumeTime();
-            	if(msg.len() != 10) {
-            		LOG.error("Invalid message len {}", msg.len());
-            	}
-                handledMsgNum.incrementAndGet();
-                return true;
-            });
-            
-            fq.addConsumer("consumerB", false, (msg, reader) -> {
-                recordConsumeTime();
-            	if(msg.len() != 10) {
-            		LOG.error("Invalid message len {}", msg.len());
-            	}
-                handledMsgNum.incrementAndGet();
-                return true;
-            });
+            for(int i = 0; i < threadNum; i++) {
+                String name = "consumer_" + i;
+                fq.addConsumer(name, false, (msg, reader) -> {
+                    recordConsumeTime();
+                	if(msg.len() != 10) {
+                		LOG.error("Invalid message len {} in {}", msg.len(), name);
+                	}
+                    handledMsgNum.incrementAndGet();
+                    return true;
+                });
+            }
             
             byte[] content = new byte[10];
             byte[] s = "aaaaaa".getBytes();
@@ -120,31 +109,6 @@ public class ConcurrentQueueTest extends TestBase {
         checkOver.cancel();
         threadPool.shutdown();
         System.exit(0);
-    }
-
-    public static boolean initLog(File cfgFile) {
-        if(!cfgFile.exists()) {
-            System.out.println(cfgFile.getAbsolutePath() + " not exists");
-            return false;
-        }
-        
-        if(!cfgFile.isFile()) {
-            System.out.println(cfgFile.getAbsolutePath() + " is not a config file");
-            return false;
-        }
-        try {
-            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
-            
-            JoranConfigurator configurator = new JoranConfigurator();
-            configurator.setContext(lc);
-            lc.reset();
-            configurator.doConfigure(cfgFile);
-            StatusPrinter.printInCaseOfErrorsOrWarnings(lc);
-        } catch (JoranException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
     }
     
     private static void recordConsumeTime() {

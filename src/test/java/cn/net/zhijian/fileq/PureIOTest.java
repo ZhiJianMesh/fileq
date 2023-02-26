@@ -43,7 +43,7 @@ public class PureIOTest extends TestBase {
         try(FastOutputStream out = new FastOutputStream(fn)) {
             testOutput("FastOutputStream", out);
         }
-        
+
         try(SafeInputStream in = new SafeInputStream(fn)) {
             testInput("SafeInputStream", in);
         }
