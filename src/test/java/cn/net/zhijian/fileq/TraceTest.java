@@ -53,5 +53,7 @@ public class TraceTest extends TestBase {
             }
         });        
         LOG.debug("Arr,time:{},speed:{}", time, (1000L * N * threadNum) / time);
+        
+        System.exit(0);
     }
 }
