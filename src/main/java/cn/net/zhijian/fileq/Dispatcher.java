@@ -43,9 +43,6 @@ class Dispatcher extends Thread implements IDispatcher {
     private static final long WAIT_TIME = 1 * 1000 * 1000 * 1000; //1 second
     
     private final ExecutorService threadPool;
-	//auto confirmed, needn't call reader.confirm in message handler.
-	//Set it to false when message handler is asynchronous.
-    private final boolean autoConfirm;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
     private long totalMsgNum = 0L;
@@ -57,12 +54,19 @@ class Dispatcher extends Thread implements IDispatcher {
         private final IMessageHandler handler;
         private final String queueName;
         private final String name;
+        /*
+         * auto confirmed, 
+         * needn't call reader.confirm in message handler.
+         * Set it to false when message handler is asynchronous.
+         */
+        private final boolean autoConfirm;
         
-        public Consumer(IReader reader, IMessageHandler handler) {
+        public Consumer(IReader reader, IMessageHandler handler, boolean autoConfirm) {
             this.reader = reader;
             this.handler = handler;
             this.queueName = reader.queueName();
             this.name = reader.name();
+            this.autoConfirm = autoConfirm;
         }
 
         public String name() {
@@ -152,9 +156,8 @@ class Dispatcher extends Thread implements IDispatcher {
         }
     }
     
-    public Dispatcher(ExecutorService threadPool, boolean autoConfirm) {
+    public Dispatcher(ExecutorService threadPool) {
         this.threadPool = threadPool;
-        this.autoConfirm = autoConfirm;
     }
     
     @Override
@@ -268,9 +271,9 @@ class Dispatcher extends Thread implements IDispatcher {
     }
     
     @Override
-    public void addConsumer(IReader reader, IMessageHandler handler) throws FQException {
+    public void addConsumer(boolean autoConfirm, IReader reader, IMessageHandler handler) throws FQException {
         Queue queue = addQueue(reader.queueName());
-        queue.add(new Consumer(reader, handler));        
+        queue.add(new Consumer(reader, handler, autoConfirm));        
     }
     
     @Override

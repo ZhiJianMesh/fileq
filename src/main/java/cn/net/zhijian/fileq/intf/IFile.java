@@ -39,6 +39,9 @@ public interface IFile extends Closeable {
     int MSG_HASH_FLAG = 0x40000000;
     int MSG_LEN_MASK = 0x3fffffff;
     
+    
+    public static enum InitPosition {CUR, HEAD, END}
+    
     static int hashCode(byte[] b, int offset, int len) {
         int h = 0;
         int end = len + offset;

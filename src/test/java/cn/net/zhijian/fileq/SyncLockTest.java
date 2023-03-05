@@ -21,8 +21,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  */
 public class SyncLockTest {
-    private static int TN = 100000;
-    private static int N = 10000;
+    private static int TN = 1000000;
+    private static int N = 1000;
     private static ExecutorService threadPool = Executors.newFixedThreadPool(16);
     private static ReentrantLock lock = new ReentrantLock();
     
@@ -47,6 +47,8 @@ public class SyncLockTest {
         end = System.currentTimeMillis();
         useTime = end - start;
         System.out.println("Lock use time:" + useTime + ",speed:" + (1000L * total / useTime));
+        
+        System.exit(0);
     }
     
     private static synchronized void fun1(CountDownLatch counter) {

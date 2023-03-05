@@ -61,40 +61,53 @@ class ConcurrentReader implements IReader {
      * @param buffered Set reader with buffered mode
      * @param bufferedPos
      *  Save consume-position to disk after `bufferedPos` times updating
+     * @param pos Initial position(CUR,HEAD,END)
      * @throws IOException
      */
     public ConcurrentReader(String name, IWriter writer,
-            boolean buffered, int bufferedPos) throws IOException {
+            boolean buffered, int bufferedPos,
+            InitPosition pos) throws IOException {
         this.name = name;
         this.writer = writer;
         this.buffered = buffered;
         String stateFile = FileUtil.addPath(writer.dir(), writer.name() + '_' + name);
         this.consumeState = new ConsumeState(stateFile, bufferedPos);
-        init();
+        init(pos);
     }
     
-    private void init() throws IOException {
-        int curFileNo = this.consumeState.fileNo();
-        int readPos = this.consumeState.readPos();
+    private void init(InitPosition pos) throws IOException {
+        int curFileNo;
+        int readPos;
         
-        if(curFileNo > writer.curFileNo()) { //file not exists
-            LOG.warn("Messages lost, file {} not exists, big than fileNo {}", 
-                    writer.queueFileName(curFileNo), writer.curFileNo());
-            curFileNo = writer.curFileNo();
+        if(pos == InitPosition.END) {
+            curFileNo = this.writer.curFileNo();
+            readPos = this.writer.size();
+        } else if(pos == InitPosition.HEAD){
+            curFileNo = this.writer.minFileNo();
             readPos = FILE_HEAD_LEN;
+        } else {
+            curFileNo = this.consumeState.fileNo();
+            readPos = this.consumeState.readPos();
+            
+            if(curFileNo > writer.curFileNo()) { //file not exists
+                LOG.warn("Messages lost, file {} not exists, big than fileNo {}", 
+                        writer.queueFileName(curFileNo), writer.curFileNo());
+                curFileNo = writer.curFileNo();
+                readPos = FILE_HEAD_LEN;
+            }
+            
+            if(curFileNo < writer.minFileNo()) {//removed file, skip it
+                LOG.warn("Messages lost, file {} not exists, smaller than fileNo {}",
+                        writer.queueFileName(curFileNo), writer.minFileNo());
+                curFileNo = writer.minFileNo();
+                readPos = FILE_HEAD_LEN;
+            }
         }
-        
-        if(curFileNo < writer.minFileNo()) {//removed file, skip it
-            LOG.warn("Messages lost, file {} not exists, smaller than fileNo {}",
-                    writer.queueFileName(curFileNo), writer.minFileNo());
-            curFileNo = writer.minFileNo();
-            readPos = FILE_HEAD_LEN;
-        }
-        
-        LOG.debug("open {},readPos:{}", writer.queueFileName(curFileNo), readPos);
+       
+        LOG.debug("open `{}`,readPos:{}", writer.queueFileName(curFileNo), readPos);
         qFile = open(curFileNo);
         if(readPos > FILE_HEAD_LEN) {
-            //first time read, skip history
+            //first time read, skip the content that has been read
             qFile.skip(readPos - FILE_HEAD_LEN);
         }
     }

@@ -41,9 +41,17 @@ public interface IDispatcher {
      */
     long handledMsgNum();
     
-    void addConsumer(IReader reader, IMessageHandler handler) throws FQException;
+    /**
+     * Add a consumer to the queue
+     * @param autoConfirm Automatically confirm messages
+     * @param reader Queue file reader
+     * @param handler Message handler
+     * @throws FQException
+     */
+    void addConsumer(boolean autoConfirm, IReader reader,
+            IMessageHandler handler) throws FQException;
 
-    void rmvConsumer(final String queueName, final String name);
+    void rmvConsumer(String queueName, String name);
     
     void rmvConsumers(String queueName);
     

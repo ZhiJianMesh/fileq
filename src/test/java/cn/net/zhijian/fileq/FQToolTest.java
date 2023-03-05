@@ -17,7 +17,7 @@ public class FQToolTest {
         CountDownLatch counter = new CountDownLatch(N * 2);
         if(!FQTool.started()) {
             ExecutorService threadPool = Executors.newCachedThreadPool();
-            FQTool.start(threadPool, true/*如果在IMessageHandler中confirm，此处传false*/);
+            FQTool.start(threadPool);
         }
         String queueDir = FileUtil.addPath(System.getProperty("user.dir"), "test");
         FileQueue.Builder builder = new FileQueue.Builder(queueDir, "queue")

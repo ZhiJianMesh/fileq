@@ -43,7 +43,7 @@ public class MixedQueueTest extends TestBase {
         int pushMsgNum = 0;
         FileQueue[] fqs = new FileQueue[4];
         
-        Dispatcher dispatcher = new Dispatcher(threadPool, true);
+        Dispatcher dispatcher = new Dispatcher(threadPool);
         dispatcher.start();
         
         try {

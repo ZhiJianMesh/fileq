@@ -18,12 +18,11 @@ package cn.net.zhijian.fileq;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 
-import cn.net.zhijian.fileq.intf.IFile;
 import cn.net.zhijian.fileq.intf.IDispatcher;
+import cn.net.zhijian.fileq.intf.IFile;
 import cn.net.zhijian.fileq.intf.IOutputStream;
 import cn.net.zhijian.fileq.intf.IWriter;
 import cn.net.zhijian.fileq.io.FastInputStream;
@@ -46,7 +45,6 @@ class Writer implements IWriter {
     private final int maxFileSize;
     private final int maxFileNum;
     private final IDispatcher dispatcher;
-    private final ReentrantLock lock = new ReentrantLock();
 
     private int curFileNo = 0;
     private int minFileNo = Integer.MAX_VALUE;
@@ -59,6 +57,7 @@ class Writer implements IWriter {
         if (maxFileSize < MIN_FILESIZE) {
             throw new FQException("maxFileSize too small");
         }
+        
         if (dispatcher == null) {
             throw new FQException("dispatcher must be set");
         }
@@ -198,31 +197,30 @@ class Writer implements IWriter {
             writeLen += Integer.BYTES;
         }
         
-        lock.lock();
-        if(msgBuf.length < writeLen) {
-            msgBuf = new byte[writeLen * 3 / 2];
-        }
-        
-        if (chkHash) {
-            IFile.encodeInt(msgBuf, len | MSG_HASH_FLAG, pos);
-            pos += Integer.BYTES;
-            IFile.encodeInt(msgBuf, hashCode, pos);
-            pos += Integer.BYTES;
-        } else {
-            IFile.encodeInt(msgBuf, len, pos);
-            pos += Integer.BYTES;
-        }
-        System.arraycopy(msg, offset, msgBuf, pos, len);
-        
-        try {
-            qFile.write(msgBuf, 0, writeLen);
-            if (qFile.size() >= maxFileSize) {
-                openNext();
+        synchronized(this) {
+            if(msgBuf.length < writeLen) {
+                msgBuf = new byte[writeLen * 3 / 2];
             }
-        } catch (Exception e) {
-            throw new FQException(e);
-        } finally {
-            lock.unlock();
+
+            if (chkHash) {
+                IFile.encodeInt(msgBuf, len | MSG_HASH_FLAG, pos);
+                pos += Integer.BYTES;
+                IFile.encodeInt(msgBuf, hashCode, pos);
+                pos += Integer.BYTES;
+            } else {
+                IFile.encodeInt(msgBuf, len, pos);
+                pos += Integer.BYTES;
+            }
+            System.arraycopy(msg, offset, msgBuf, pos, len);
+            
+            try {
+                qFile.write(msgBuf, 0, writeLen);
+                if (qFile.size() >= maxFileSize) {
+                    openNext();
+                }
+            } catch (Exception e) {
+                throw new FQException(e);
+            }
         }
 
         dispatcher.ready();

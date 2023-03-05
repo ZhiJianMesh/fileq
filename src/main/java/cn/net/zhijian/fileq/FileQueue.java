@@ -26,6 +26,7 @@ import cn.net.zhijian.fileq.intf.IMessageHandler;
 import cn.net.zhijian.fileq.intf.IReader;
 import cn.net.zhijian.fileq.intf.IWriter;
 import cn.net.zhijian.fileq.util.LogUtil;
+import cn.net.zhijian.util.FileUtil;
 
 /**
  * main class
@@ -55,7 +56,7 @@ public final class FileQueue implements IFile {
                 builder.maxFileSize, builder.maxFileNum,
                 builder.bufferedPush, builder.dispatcher);
         this.dispatcher = builder.dispatcher;
-        this.name = builder.name;
+        this.name = builder.queueName();
         this.bufferedPoll = builder.bufferedPoll;
         this.bufferedPos = builder.bufferedPos;
     }
@@ -101,24 +102,38 @@ public final class FileQueue implements IFile {
      * @param sequential
      *     If true, each message is handled one by one, until it's confirmed.
      *     If false, messages are handled concurrently, and doesn't care about result
+     * @param cp Initital position
      * @param handler message handler
+     * @param autoConrim Automatically confirm messages
+     *  If true,dispatcher will call reader.confirm, otherwise
+     *  reader.confirm should be called in message handler yourself. 
+     *  It's useful in asynchronous handler
      * @throws FQException
      */
     public synchronized void addConsumer(String name, boolean sequential,
-            IMessageHandler handler) throws FQException {
+            InitPosition cp, boolean autoConrim, IMessageHandler handler) throws FQException {
         IReader reader;
         try {
             if(sequential) {
-                reader = new SequentialReader(name, writer, dispatcher, bufferedPoll, bufferedPos);
+                reader = new SequentialReader(name, writer, dispatcher, bufferedPoll, bufferedPos, cp);
             } else {
-                reader = new ConcurrentReader(name, writer, bufferedPoll, bufferedPos);
+                reader = new ConcurrentReader(name, writer, bufferedPoll, bufferedPos, cp);
             }
         } catch(IOException e) {
             throw new FQException(e);
         }
-        dispatcher.addConsumer(reader, handler);
+        dispatcher.addConsumer(autoConrim, reader, handler);
+    }
+    
+    public void addConsumer(String name, boolean sequential, boolean autoConrim,
+            IMessageHandler handler) throws FQException {
+        addConsumer(name, sequential, InitPosition.CUR, autoConrim, handler);
     }
 
+    public void addConsumer(String name, boolean sequential,
+            IMessageHandler handler) throws FQException {
+        addConsumer(name, sequential, InitPosition.CUR, true, handler);
+    }
     /**
      * Remove a consumer
      * @param name Consumer name
@@ -140,7 +155,7 @@ public final class FileQueue implements IFile {
     
     public static class Builder {
         private final String dir;
-        final String name;
+        private final String name;
         private int maxFileSize = 16 * 1024 * 1024;
         private int maxFileNum = 100;
         private boolean bufferedPush = false;
@@ -235,13 +250,17 @@ public final class FileQueue implements IFile {
          * @param autoConfirm auto confirm each message after handled
          * @return Builder
          */
-        Builder createDispatcher(ExecutorService threadPool, boolean autoConfirm) {
-            this.dispatcher = new Dispatcher(threadPool, autoConfirm);
+        Builder createDispatcher(ExecutorService threadPool) {
+            this.dispatcher = new Dispatcher(threadPool);
             return this;
         }
         
         public FileQueue build() throws FQException {
             return new FileQueue(this);
+        }
+        
+        public String queueName() {
+            return FileUtil.addPath(dir, name);
         }
         
         IDispatcher dispatcher() {

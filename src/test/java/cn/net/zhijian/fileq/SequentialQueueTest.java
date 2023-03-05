@@ -40,7 +40,7 @@ public class SequentialQueueTest extends TestBase {
         Timer checkOver = new Timer("Checking");
         int pushMsgNum = 0;        
         
-        Dispatcher dispatcher = new Dispatcher(threadPool, false);
+        Dispatcher dispatcher = new Dispatcher(threadPool);
         String dir = FileUtil.addPath(workDir, "queue1");
         FileQueue.Builder builder = new FileQueue.Builder(dir, "tt")
                 .dispatcher(dispatcher)
@@ -54,7 +54,7 @@ public class SequentialQueueTest extends TestBase {
             FileQueue fq = builder.build();
             for(int i = 0; i < threadNum * 2; i++) {
                 String name = "consumer_" + i;
-                fq.addConsumer(name, true, new MessageHandler(name));
+                fq.addConsumer(name, true, false, new MessageHandler(name));
             }
             
             byte[] content = new byte[10];

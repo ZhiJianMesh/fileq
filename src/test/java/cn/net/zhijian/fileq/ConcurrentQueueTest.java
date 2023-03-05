@@ -42,7 +42,7 @@ public class ConcurrentQueueTest extends TestBase {
         long start;
         long end;
         Timer checkOver = new Timer("Checking");
-        Dispatcher dispatcher = new Dispatcher(threadPool, true);
+        Dispatcher dispatcher = new Dispatcher(threadPool);
         String dir = FileUtil.addPath(workDir, "queue");
         FileQueue.Builder builder = new FileQueue.Builder(dir, "tt")
                 .dispatcher(dispatcher)

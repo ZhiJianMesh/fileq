@@ -50,6 +50,7 @@ public class ConsumeState implements Closeable, IFile {
     private int readPos = FILE_HEAD_LEN;
     private int bufferedTimes = 0;
     private byte[] buf = new byte[Integer.BYTES * 2];
+    private boolean changed = false;
 
     public ConsumeState(String fileName, int bufferedTimes) throws IOException {
         this.fileName = fileName;
@@ -115,22 +116,28 @@ public class ConsumeState implements Closeable, IFile {
     }
 
     public void save(int fileNo, int readPos, boolean force) {
-        this.bufferedTimes++;
-        this.fileNo = fileNo;
-        this.readPos = readPos;
+        this.changed = this.changed || readPos != this.readPos || fileNo != this.fileNo;
+        if(this.changed) {
+            this.bufferedTimes++;
+            this.fileNo = fileNo;
+            this.readPos = readPos;
+        }
         save(force || this.bufferedTimes >= maxBufferedTimes);
     }
 
     public void save(int readPos, boolean force) {
-        this.bufferedTimes++;
-        this.readPos = readPos;
+        this.changed = this.changed || readPos != this.readPos;
+        if(this.changed) {
+            this.bufferedTimes++;
+            this.readPos = readPos;
+        }
         save(force || this.bufferedTimes >= maxBufferedTimes);
     }
 
     public void save(boolean force) {
         long cur = System.currentTimeMillis();
         if(!force) {
-            if(cur - recordTime < MAX_SAVE_INTERVAL) {
+            if(cur - recordTime < MAX_SAVE_INTERVAL || !this.changed) {
                 return;
             }
         }

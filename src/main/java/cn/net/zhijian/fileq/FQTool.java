@@ -21,25 +21,28 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import org.slf4j.Logger;
+
+import cn.net.zhijian.fileq.util.LogUtil;
+
 /**
  * FileQueue tool class
  * @author Lgy
  *
  */
 public class FQTool {
+    private static final Logger LOG = LogUtil.getInstance();
+    
     private static Dispatcher dispatcher = null;
     private static final List<FileQueue> queues = Collections.synchronizedList(new ArrayList<>());
     
     /**
      * 
      * @param threadPool Thread pool to execute message handler
-     * @param autoConfirm If true,dispatcher will call reader.confirm, otherwise
-     *   reader.confirm should be called in message handler yourself. 
-     *   It's useful in asynchronous handler
      */
-    public static void start(ExecutorService threadPool, boolean autoConfirm) {
+    public static void start(ExecutorService threadPool) {
         if(!started()) {
-            dispatcher = new Dispatcher(threadPool, autoConfirm);
+            dispatcher = new Dispatcher(threadPool);
             dispatcher.start();
         }
     }
@@ -52,7 +55,7 @@ public class FQTool {
      * Create a file queue.
      * To split a queue into many small queues is recommended.
      * More queues more efficient when they are consumed.
-     * @param builder builder
+     * @param builder Builder
      * @return FileQueue
      * @throws FQException
      */
@@ -61,9 +64,9 @@ public class FQTool {
             throw new FQException("FQTool not started");
         }
 
-        FileQueue fq = get(builder.name);
+        FileQueue fq = get(builder.queueName());
         if(fq != null) {
-            throw new FQException("FileQueue `" + builder.name + "` exists");
+            throw new FQException("FileQueue `" + builder.queueName() + "` exists");
         }
 
         builder.dispatcher(dispatcher);
@@ -87,8 +90,14 @@ public class FQTool {
         
         for(FileQueue fq : queues) {
             if(fq.name.equals(name)) {
+			    try {
+                    fq.close();
+                } catch (IOException e) {
+                    LOG.error("Fail to close queue {}", fq.name, e);
+                }
                 break;
             }
+
             idx++;
         }
         

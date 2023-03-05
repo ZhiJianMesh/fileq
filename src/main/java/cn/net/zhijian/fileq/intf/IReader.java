@@ -52,5 +52,9 @@ public interface IReader extends IFile {
      */
     IWriter writer();
     
+    /**
+     * Hasten writer to flush all data to disk.
+     * It's useful when the writer is a buffered writer.
+     */
     void hasten();
 }

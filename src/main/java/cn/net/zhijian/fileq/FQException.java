@@ -31,6 +31,10 @@ public class FQException extends Exception {
         super(cause);
     }
     
+    public FQException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
+    
     public FQException(String msg) {
         super(msg);
     }

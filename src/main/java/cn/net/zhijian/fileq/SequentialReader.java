@@ -54,11 +54,12 @@ class SequentialReader extends ConcurrentReader {
      * @param buffered Buffered mode
      * @param bufferedPos
      *  Save consume-position to disk after `bufferedPos` times updating
+     * @param pos Initial position(CUR,HEAD,END)
      * @throws IOException
      */
     public SequentialReader(String name, IWriter writer, IDispatcher dispatcher,
-            boolean buffered, int bufferedPos) throws IOException {
-        super(name, writer, buffered, bufferedPos);
+            boolean buffered, int bufferedPos, InitPosition pos) throws IOException {
+        super(name, writer, buffered, bufferedPos, pos);
         this.dispatcher = dispatcher;
     }
 
