@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 
 import cn.net.zhijian.fileq.util.LogUtil;
-import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.fileq.util.FileUtil;
 
 public class FQToolTest {
     private static final int N = 10;

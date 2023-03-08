@@ -13,7 +13,7 @@ import cn.net.zhijian.fileq.io.FastOutputStream;
 import cn.net.zhijian.fileq.io.SafeInputStream;
 import cn.net.zhijian.fileq.io.SafeOutputStream;
 import cn.net.zhijian.fileq.util.LogUtil;
-import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.fileq.util.FileUtil;
 /**
  * SafeOutputStream write->useTime:16195,Speed:1975918/s
  * FastOutputStream write->useTime:146,Speed:219178082/s

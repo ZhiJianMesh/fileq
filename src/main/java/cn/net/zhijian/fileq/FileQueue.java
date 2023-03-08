@@ -26,7 +26,7 @@ import cn.net.zhijian.fileq.intf.IMessageHandler;
 import cn.net.zhijian.fileq.intf.IReader;
 import cn.net.zhijian.fileq.intf.IWriter;
 import cn.net.zhijian.fileq.util.LogUtil;
-import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.fileq.util.FileUtil;
 
 /**
  * main class
