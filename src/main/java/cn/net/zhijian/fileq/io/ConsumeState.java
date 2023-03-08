@@ -109,7 +109,7 @@ public class ConsumeState implements Closeable, IFile {
         if(stateFile == null) {
             return;
         }
-        LOG.debug("Close state {}, {}", fileName, toString());
+        LOG.debug("Close state {}, {}", fileName, this);
         save(true);
         stateFile.close();
         stateFile = null;

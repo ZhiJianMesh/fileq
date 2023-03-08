@@ -156,11 +156,9 @@ class ConcurrentReader implements IReader {
 
         do {
             try {
-                if((f = open(fileNo)) != null) {
-                    if(f.hasMore()) {
-                        return f;
-                    }
-                    //only file head,ignore it
+                if((f = open(fileNo)) != null
+                   && f.hasMore()) { //if only file head,ignore it
+                    return f;
                 }
             } catch (IOException e) {
                 LOG.error("Fail to open file {}", fileName(fileNo), e);

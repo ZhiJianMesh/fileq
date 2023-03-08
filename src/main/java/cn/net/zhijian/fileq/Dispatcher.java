@@ -262,12 +262,9 @@ class Dispatcher extends Thread implements IDispatcher {
     }    
     
     private Queue addQueue(String queueName) {
-        Queue queue = queues.get(queueName);
-        if(queue == null) {
-            queue = new Queue();
-            queues.put(queueName, queue);
-        }
-        return queue;
+        return queues.computeIfAbsent(queueName, k -> {
+            return new Queue();
+        });
     }
     
     @Override

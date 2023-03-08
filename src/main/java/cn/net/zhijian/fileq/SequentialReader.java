@@ -72,6 +72,7 @@ class SequentialReader extends ConcurrentReader {
             return null;
         }
         
+        IMessage msg = null;
         if(state == MsgState.FAILED) {
             long cur = System.currentTimeMillis();
             if(cur - retriedAt > retryInterval) {
@@ -79,15 +80,15 @@ class SequentialReader extends ConcurrentReader {
                     retryInterval <<= 1; //double retry time
                 }
                 retriedAt = cur;
-                return msg; //return old message again
+                msg = this.msg; //return old message again
             }
-            return null;
+        } else {
+            retryInterval = MIN_RETRY_INTERVAL;
+            retriedAt = System.currentTimeMillis();
+            msg = super.read();
+            state = msg != null ? MsgState.WAITCONFIRM : MsgState.IDLE;
         }
-        retryInterval = MIN_RETRY_INTERVAL;
-        retriedAt = System.currentTimeMillis();
-        IMessage msg = super.read();
-        state = msg != null ? MsgState.WAITCONFIRM : MsgState.IDLE;
-        
+
         return msg;
     }
     
