@@ -38,7 +38,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * @author Lgy
  *
  */
-class Dispatcher extends Thread implements IDispatcher {
+final class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
     private static final long WAIT_TIME = 1 * 1000 * 1000 * 1000; //1 second
     

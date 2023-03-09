@@ -35,7 +35,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  * @author liguoyong77@sina.com
  *
  */
-public class SafeOutputStream implements IOutputStream {
+public final class SafeOutputStream implements IOutputStream {
     public final String name;
     private int size = 0;
     private FileOutputStream fos;

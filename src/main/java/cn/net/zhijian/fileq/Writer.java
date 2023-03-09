@@ -36,7 +36,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * @author Lgy
  *
  */
-class Writer implements IWriter {
+final class Writer implements IWriter {
     private static final Logger LOG = LogUtil.getInstance();
     
     private final String dir;

@@ -20,7 +20,7 @@ package cn.net.zhijian.fileq;
  * @author Lgy
  *
  */
-public class FQException extends Exception {
+public final class FQException extends Exception {
     private static final long serialVersionUID = 28188152046419149L;
 
     public FQException() {

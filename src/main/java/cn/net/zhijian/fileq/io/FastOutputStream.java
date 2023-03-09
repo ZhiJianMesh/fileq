@@ -29,7 +29,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  * @author liguoyong77@sina.com
  *
  */
-public class FastOutputStream implements IOutputStream {
+public final class FastOutputStream implements IOutputStream {
     private int size = 0;
     private FileOutputStream fos;
     private BufferedOutputStream bos;

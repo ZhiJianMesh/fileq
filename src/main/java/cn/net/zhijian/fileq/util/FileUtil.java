@@ -22,7 +22,7 @@ import java.io.File;
  * @author Lgy
  *
  */
-public class FileUtil {
+public final class FileUtil {
     public static String addPath(String path, String name) {
         int len = path.length();
         char ch = path.charAt(len - 1);

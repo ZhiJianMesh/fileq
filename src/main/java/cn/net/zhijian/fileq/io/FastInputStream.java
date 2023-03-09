@@ -28,7 +28,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  * @author liguoyong77@sina.com
  *
  */
-public class FastInputStream implements IInputStream {
+public final class FastInputStream implements IInputStream {
     private static final int BUF_SIZE = 1024 * 1024;
     public final String name;
 

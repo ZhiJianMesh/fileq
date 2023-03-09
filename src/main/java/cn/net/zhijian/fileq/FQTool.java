@@ -30,7 +30,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * @author Lgy
  *
  */
-public class FQTool {
+public final class FQTool {
     private static final Logger LOG = LogUtil.getInstance();
     
     private static Dispatcher dispatcher = null;

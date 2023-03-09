@@ -23,7 +23,7 @@ import cn.net.zhijian.fileq.intf.IMessage;
  * @author Lgy
  *
  */
-public class SequentialMessage implements IMessage {
+public final class SequentialMessage implements IMessage {
     private int len;
     private byte[] msg;
     

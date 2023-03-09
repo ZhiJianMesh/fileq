@@ -29,7 +29,7 @@ import cn.net.zhijian.fileq.intf.IWriter;
  * @author Lgy
  *
  */
-class SequentialReader extends ConcurrentReader {
+final class SequentialReader extends ConcurrentReader {
     private static final int MIN_RETRY_INTERVAL = 500;
     private static final int MAX_RETRY_INTERVAL = 10 * 1000;
     

@@ -36,7 +36,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * @author Lgy
  *
  */
-public class ConsumeState implements Closeable, IFile {
+public final class ConsumeState implements Closeable, IFile {
     private static final Logger LOG = LogUtil.getInstance();
     private static final int MAX_SAVE_INTERVAL = 1000;
     //max problem is that it may cause re-consume 1000 messages

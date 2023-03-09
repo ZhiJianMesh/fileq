@@ -23,7 +23,7 @@ import cn.net.zhijian.fileq.intf.IMessage;
  * @author Lgy
  *
  */
-public class ConcurrentMessage implements IMessage {
+public final class ConcurrentMessage implements IMessage {
     private final byte[] msg;
     private final int len;
 

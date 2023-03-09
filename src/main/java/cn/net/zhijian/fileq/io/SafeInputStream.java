@@ -34,7 +34,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  * @author liguoyong77@sina.com
  *
  */
-public class SafeInputStream implements IInputStream {
+public final class SafeInputStream implements IInputStream {
     public final String name;
     private FileInputStream fis;
     private FileChannel fc;
