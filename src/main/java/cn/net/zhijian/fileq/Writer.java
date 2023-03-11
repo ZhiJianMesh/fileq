@@ -17,7 +17,6 @@ package cn.net.zhijian.fileq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.slf4j.Logger;
 
@@ -104,7 +103,7 @@ final class Writer implements IWriter {
                 try (FastInputStream qis = new FastInputStream(f)) {
                     qis.read(head);
                     ver = 0xff & ((int)head[MAGIC.length]);
-                    if (ver == VER && Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length)) {
+                    if (ver == VER && IFile.byteArrayEquals(head, 0, MAGIC, 0, MAGIC.length)) {
                         no = IFile.parseInt(head, MAGIC.length + 1);
                         if (this.minFileNo > no) {
                             this.minFileNo = no;

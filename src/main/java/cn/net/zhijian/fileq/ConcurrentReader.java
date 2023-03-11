@@ -17,7 +17,6 @@ package cn.net.zhijian.fileq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.slf4j.Logger;
 
@@ -138,7 +137,7 @@ class ConcurrentReader implements IReader {
         //magic(5)|ver(1)|fileNo(4)
         int ver = 0xff & ((int)head[MAGIC.length]);
         int no = IFile.parseInt(head, MAGIC.length + 1);
-        if (ver != VER || !Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length) || no != fileNo) {
+        if (ver != VER || !IFile.byteArrayEquals(head, 0, MAGIC, 0, MAGIC.length) || no != fileNo) {
             FileUtil.closeQuietly(qFile);
             throw new IOException("Invalid queue file " + fn
                     + ",ver=" + ver + ",no=" + no

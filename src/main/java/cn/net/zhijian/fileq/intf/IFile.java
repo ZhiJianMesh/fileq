@@ -77,4 +77,30 @@ public interface IFile extends Closeable {
         }
         return v;
     }
+
+    /**
+     * Compare two byte array
+     *
+     * @param a src a
+     * @param aStart start of src a
+     * @param b src b
+     * @param bStart start of src b
+     * @param len length
+     * @return if equals, return true
+     */
+    static boolean byteArrayEquals(byte[] a, int aStart, byte[] b, int bStart, int len) {
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a.length - aStart < len || b.length - bStart < len) { // 长度不够
+            return false;
+        }
+
+        for (int i = 0; i < len; i++) {
+            if (a[aStart + i] != b[bStart + i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

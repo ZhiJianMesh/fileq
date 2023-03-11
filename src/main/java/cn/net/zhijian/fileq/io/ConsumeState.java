@@ -18,7 +18,6 @@ package cn.net.zhijian.fileq.io;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.slf4j.Logger;
 
@@ -74,7 +73,7 @@ public final class ConsumeState implements Closeable, IFile {
             int ver = ((int)head[MAGIC.length]) & 0xff;
             fileNo = IFile.parseInt(head, MAGIC.length + 1);
             if (ver != VER || fileNo != 0
-                || !Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length)) {
+                || !IFile.byteArrayEquals(head, 0, MAGIC, 0, MAGIC.length)) {
                 break load; //invalid state file
             }
             
