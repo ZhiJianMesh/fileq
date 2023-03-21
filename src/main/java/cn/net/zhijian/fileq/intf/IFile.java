@@ -40,7 +40,7 @@ public interface IFile extends Closeable {
     int MSG_LEN_MASK = 0x3fffffff;
     
     
-    public static enum InitPosition {CUR, HEAD, END}
+    enum InitPosition {CUR, HEAD, END}
     
     static int hashCode(byte[] b, int offset, int len) {
         int h = 0;

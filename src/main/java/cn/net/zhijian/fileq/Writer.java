@@ -44,13 +44,23 @@ final class Writer implements IWriter {
     private final int maxFileSize;
     private final int maxFileNum;
     private final IDispatcher dispatcher;
+    private final boolean buffered;
 
     private int curFileNo = 0;
     private int minFileNo = Integer.MAX_VALUE;
     private IOutputStream qFile;
     private byte[] msgBuf = new byte[DEFAULT_BUF_LEN];
-    private boolean buffered;
 
+    /**
+     *
+     * @param dir queue directory
+     * @param name name of the queue
+     * @param maxFileSize max queue file size
+     * @param maxFileNum max queue file num, if exceed it, queue will discard useless files
+     * @param buffered use buffed output stream or not
+     * @param dispatcher queue dispatcher, many queues can share one dispatcher
+     * @throws FQException filequeue exception
+     */
     public Writer(String dir, String name, int maxFileSize, int maxFileNum,
             boolean buffered, IDispatcher dispatcher) throws FQException {
         if (maxFileSize < MIN_FILESIZE) {
@@ -205,11 +215,10 @@ final class Writer implements IWriter {
                 IFile.encodeInt(msgBuf, len | MSG_HASH_FLAG, pos);
                 pos += Integer.BYTES;
                 IFile.encodeInt(msgBuf, hashCode, pos);
-                pos += Integer.BYTES;
             } else {
                 IFile.encodeInt(msgBuf, len, pos);
-                pos += Integer.BYTES;
             }
+            pos += Integer.BYTES;
             System.arraycopy(msg, offset, msgBuf, pos, len);
             
             try {

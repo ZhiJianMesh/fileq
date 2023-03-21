@@ -30,5 +30,5 @@ public interface IMessageHandler {
      * @param reader
      *  If failed to handle the message, you can call reader.confirm(false)
      */
-    public boolean handle(IMessage msg, IReader reader);
+    boolean handle(IMessage msg, IReader reader);
 }

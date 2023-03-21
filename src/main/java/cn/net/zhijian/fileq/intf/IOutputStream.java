@@ -22,7 +22,7 @@ public interface IOutputStream extends IFile {
     void write(byte[] content, int offset, int len) throws IOException;
     /**
      * Force all content in buffer to be saved to disk right now
-     * @throws IOException
+     * @throws IOException io exception
      */
     void flush() throws IOException;
     int size();

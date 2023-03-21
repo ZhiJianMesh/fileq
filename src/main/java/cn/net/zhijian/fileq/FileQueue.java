@@ -40,7 +40,7 @@ public final class FileQueue implements IFile {
     private static final Logger LOG = LogUtil.getInstance();
 
     //messages dispatcher, multi queues can share one dispatcher
-    private IDispatcher dispatcher = null;
+    private IDispatcher dispatcher;
 
     //only one writer, more than one consumers
     private IWriter writer;
@@ -66,8 +66,7 @@ public final class FileQueue implements IFile {
      * @param msg Message should be written, FileQueue doesn't care the content
      * @param offset offset of the message buffer
      * @param len message length
-     * @throws FQException
-     * @throws IOException
+     * @throws FQException write exception
      */
     public void push(byte[] msg, int offset, int len) throws FQException {
         this.writer.write(msg, offset, len, false);
@@ -80,19 +79,17 @@ public final class FileQueue implements IFile {
     /**
      * Write message to file queue,
      * in one queue only one thread can write at the same time
-     * @param msg
-     * @param offset
-     * @param len
-     * @param chkHash
-     *     If true, will check the message hash code
-     * @throws FQException
-     * @throws IOException
+     * @param msg pushed message
+     * @param offset offset of the msg
+     * @param len lenght of the msg
+     * @param chkHash If true, will check the message hash code
+     * @throws FQException write exception
      */
-    public void push(byte[] msg, int offset, int len, boolean chkHash) throws FQException, IOException {
+    public void push(byte[] msg, int offset, int len, boolean chkHash) throws FQException {
         this.writer.write(msg, offset, len, chkHash);
     }
 
-    public void push(byte[] msg, boolean chkHash) throws FQException, IOException {
+    public void push(byte[] msg, boolean chkHash) throws FQException {
         this.writer.write(msg, 0, msg.length, chkHash);
     }
 
@@ -108,7 +105,7 @@ public final class FileQueue implements IFile {
      *  If true,dispatcher will call reader.confirm, otherwise
      *  reader.confirm should be called in message handler yourself. 
      *  It's useful in asynchronous handler
-     * @throws FQException
+     * @throws FQException wrap of IOException
      */
     public synchronized void addConsumer(String name, boolean sequential,
             InitPosition cp, boolean autoConrim, IMessageHandler handler) throws FQException {
@@ -160,6 +157,7 @@ public final class FileQueue implements IFile {
         private int maxFileNum = 100;
         private boolean bufferedPush = false;
         private boolean bufferedPoll = false;
+        //save position info into file after `bufferedPos` times
         private int bufferedPos = 1024;
         private IDispatcher dispatcher;
         
@@ -204,7 +202,7 @@ public final class FileQueue implements IFile {
          * It improves the performance, but it lead in a risk.
          * If the program crashed, re-start again, it will consume `bufferedPos`
          * messages repeatedly.
-         * @param bufferedPos 
+         * @param bufferedPos  write position info into file after 'bufferedPos' times
          * @return Builder
          */
         public Builder bufferedPos(int bufferedPos) {
@@ -247,7 +245,6 @@ public final class FileQueue implements IFile {
         /**
          * Create a dispatcher
          * @param threadPool thread pool
-         * @param autoConfirm auto confirm each message after handled
          * @return Builder
          */
         Builder createDispatcher(ExecutorService threadPool) {

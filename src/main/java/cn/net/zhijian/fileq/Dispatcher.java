@@ -49,7 +49,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     private boolean goon = true; //continue to run or not
     private volatile boolean tracing = true; 
     
-    private class Consumer implements Closeable {
+    private static class Consumer implements Closeable {
         private final IReader reader;
         private final IMessageHandler handler;
         private final String queueName;
@@ -110,7 +110,7 @@ final class Dispatcher extends Thread implements IDispatcher {
         }
     }
     
-    private class Queue {
+    private static class Queue {
         private Consumer[] consumers = new Consumer[] {};
         
         void add(Consumer c) {
@@ -262,13 +262,11 @@ final class Dispatcher extends Thread implements IDispatcher {
     }    
     
     private Queue addQueue(String queueName) {
-        return queues.computeIfAbsent(queueName, k -> {
-            return new Queue();
-        });
+        return queues.computeIfAbsent(queueName, k -> new Queue());
     }
     
     @Override
-    public void addConsumer(boolean autoConfirm, IReader reader, IMessageHandler handler) throws FQException {
+    public void addConsumer(boolean autoConfirm, IReader reader, IMessageHandler handler) {
         Queue queue = addQueue(reader.queueName());
         queue.add(new Consumer(reader, handler, autoConfirm));        
     }

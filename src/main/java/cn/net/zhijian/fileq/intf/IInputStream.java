@@ -20,9 +20,9 @@ import java.io.IOException;
 public interface IInputStream extends IFile {
     /**
      * Read content from the stream,
-     * @param buf Buffer,should promise it has enough memory to save the message
+     * @param buff Buffer,should promise it has enough memory to save the message
      * @return real read length
-     * @throws IOException
+     * @throws IOException io exception
      */
     int read(byte[] buff) throws IOException;
     
@@ -32,7 +32,7 @@ public interface IInputStream extends IFile {
      * Skip n bytes
      * @param n The number of bytes to skip
      * @return The real length skipped
-     * @throws IOException
+     * @throws IOException io exception
      */
     default long skip(int n) throws IOException {
         if(n <= 0) {
@@ -44,7 +44,7 @@ public interface IInputStream extends IFile {
         int len;
         int count = 0;
         for(; count < n && readLen > 0; count += readLen) {
-            len = n - count > bufSize ? bufSize : n - count;
+            len = Math.min(n - count, bufSize);
             readLen = read(buf, 0, len);
         } 
         //BufferedInputStream.skip can't handle correctly,

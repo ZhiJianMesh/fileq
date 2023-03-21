@@ -59,9 +59,12 @@ public class SyncLockTest {
     
     private static void fun2(CountDownLatch counter) {
         lock.lock();
-        for(int i = 0; i < N; i++) {
-            counter.countDown();
+        try {
+            for(int i = 0; i < N; i++) {
+                counter.countDown();
+            }
+        } finally {
+            lock.unlock();
         }
-        lock.unlock();
     }
 }

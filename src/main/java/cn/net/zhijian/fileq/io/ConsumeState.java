@@ -43,12 +43,12 @@ public final class ConsumeState implements Closeable, IFile {
 
     private final String fileName;
     private final int maxBufferedTimes;
+    private final byte[] buf = new byte[Integer.BYTES * 2];
     private IOutputStream stateFile;
     private long recordTime = System.currentTimeMillis(); //save file time
     private int fileNo = 0;
     private int readPos = FILE_HEAD_LEN;
     private int bufferedTimes = 0;
-    private byte[] buf = new byte[Integer.BYTES * 2];
     private boolean changed = false;
 
     public ConsumeState(String fileName, int bufferedTimes) throws IOException {
@@ -78,7 +78,7 @@ public final class ConsumeState implements Closeable, IFile {
             }
             
             //continue reading until the last one
-            while((readLen = fis.read(buf)) == buf.length) {
+            while(fis.read(buf) == buf.length) {
                 fileNo = IFile.parseInt(buf, 0);
                 readPos = IFile.parseInt(buf, Integer.BYTES);
             }
@@ -143,7 +143,7 @@ public final class ConsumeState implements Closeable, IFile {
         recordTime = cur;
         bufferedTimes = 0;
 
-        synchronized(stateFile) {
+        synchronized(this) {
             try {
                 if(stateFile.size() >= MAX_SIZE) { //if too large, rewrite it
                     stateFile.close();

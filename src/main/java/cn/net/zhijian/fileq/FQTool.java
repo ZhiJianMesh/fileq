@@ -57,7 +57,7 @@ public final class FQTool {
      * More queues more efficient when they are consumed.
      * @param builder Builder
      * @return FileQueue
-     * @throws FQException
+     * @throws FQException wrong state of file queue
      */
     public static FileQueue create(FileQueue.Builder builder) throws FQException {
         if(!started()) {
@@ -108,7 +108,7 @@ public final class FQTool {
 
     /**
      * Stop all file queues, the dispatcher will be shutdown
-     * @throws IOException
+     * @throws IOException file io exception
      */
     public static void stop() throws IOException {
         if(!started()) {

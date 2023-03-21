@@ -61,7 +61,7 @@ class ConcurrentReader implements IReader {
      * @param bufferedPos
      *  Save consume-position to disk after `bufferedPos` times updating
      * @param pos Initial position(CUR,HEAD,END)
-     * @throws IOException
+     * @throws IOException exception
      */
     public ConcurrentReader(String name, IWriter writer,
             boolean buffered, int bufferedPos,
@@ -227,7 +227,7 @@ class ConcurrentReader implements IReader {
      * Read a integer value from file.
      * Because Executed in a single thread, so `intBuf` can be a member variable
      * @return An integer value
-     * @throws IOException
+     * @throws IOException fail to read exception
      */
     private int readInt() throws IOException {
         if(qFile.read(intBuf) != Integer.BYTES) {
@@ -263,7 +263,7 @@ class ConcurrentReader implements IReader {
     }
 
     @Override
-    public synchronized void close() throws IOException {
+    public synchronized void close() {
         if(qFile != null) {
             this.consumeState.save(qFile.readPos(), true);
             FileUtil.closeQuietly(qFile);

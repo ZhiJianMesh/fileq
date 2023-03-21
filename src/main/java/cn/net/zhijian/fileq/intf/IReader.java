@@ -26,7 +26,7 @@ public interface IReader extends IFile {
     /**
      * Current reading file no
      * It is used to judge which file should be reserved.
-     * @return
+     * @return current reading file no
      */
     int curFileNo();
     String name();
@@ -36,19 +36,19 @@ public interface IReader extends IFile {
      * Read message from queue files one by one
      * until there is no message left, then return null.
      * Should be called in a single thread.
-     * @return
+     * @return a message
      */
     IMessage read();
     
     /**
      * Confirm whether the message is handled ok or not
-     * @param result
+     * @param result handle result
      */
     void confirm(boolean result);
     
     /**
      * Message writer
-     * @return
+     * @return queue file writer
      */
     IWriter writer();
     

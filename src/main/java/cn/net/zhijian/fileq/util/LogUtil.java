@@ -39,9 +39,9 @@ public final class LogUtil {
     
     /**
      * Core function, get class name from stack trace
-     * @return
+     * @return class name which LOG running in
      */
-    private static final String getClassName() {
+    private static String getClassName() {
         String logClass;
         StackTraceElement[] trace = Thread.currentThread().getStackTrace();
         for(int i = 2; i < trace.length; i++) {

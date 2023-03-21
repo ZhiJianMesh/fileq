@@ -15,8 +15,6 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
-import cn.net.zhijian.fileq.FQException;
-
 /**
  * Queue messages' dispatcher
  * @author Lgy
@@ -30,14 +28,14 @@ public interface IDispatcher {
     
     /**
      * Get the minimal file no of the queue
-     * @param queueName
-     * @return
+     * @param queueName name of the file queue
+     * @return the minimums file no
      */
     int minFileNo(String queueName);
     
     /**
      * Get handled message number of all queues 
-     * @return
+     * @return message number that have already been handled
      */
     long handledMsgNum();
     
@@ -46,10 +44,8 @@ public interface IDispatcher {
      * @param autoConfirm Automatically confirm messages
      * @param reader Queue file reader
      * @param handler Message handler
-     * @throws FQException
      */
-    void addConsumer(boolean autoConfirm, IReader reader,
-            IMessageHandler handler) throws FQException;
+    void addConsumer(boolean autoConfirm, IReader reader, IMessageHandler handler);
 
     void rmvConsumer(String queueName, String name);
     
