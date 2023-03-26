@@ -40,7 +40,7 @@ public final class FileQueue implements IFile {
     private static final Logger LOG = LogUtil.getInstance();
 
     //messages dispatcher, multi queues can share one dispatcher
-    private IDispatcher dispatcher;
+    private final IDispatcher dispatcher;
 
     //only one writer, more than one consumers
     private IWriter writer;
@@ -59,6 +59,7 @@ public final class FileQueue implements IFile {
         this.name = builder.queueName();
         this.bufferedPoll = builder.bufferedPoll;
         this.bufferedPos = builder.bufferedPos;
+        LOG.debug("Create queue `{}`", this.name);
     }
 
     /**
@@ -135,7 +136,7 @@ public final class FileQueue implements IFile {
      * Remove a consumer
      * @param name Consumer name
      */
-    public synchronized void rmveConsumer(String name) {
+    public synchronized void rmvConsumer(String name) {
         dispatcher.rmvConsumer(writer.queueName(), name);
     }
 
@@ -153,11 +154,11 @@ public final class FileQueue implements IFile {
     public static class Builder {
         private final String dir;
         private final String name;
-        private int maxFileSize = 16 * 1024 * 1024;
-        private int maxFileNum = 100;
+        private int maxFileSize = DEFAULT_QFILE_SIZE;
+        private int maxFileNum = DEFAULT_QFILE_NUM;
         private boolean bufferedPush = false;
         private boolean bufferedPoll = false;
-        //save position info into file after `bufferedPos` times
+        //save position info into file after updating `bufferedPos` times
         private int bufferedPos = 1024;
         private IDispatcher dispatcher;
         

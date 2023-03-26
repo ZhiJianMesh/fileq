@@ -66,7 +66,7 @@ public final class FQTool {
 
         FileQueue fq = get(builder.queueName());
         if(fq != null) {
-            throw new FQException("FileQueue `" + builder.queueName() + "` exists");
+            return fq;
         }
 
         builder.dispatcher(dispatcher);
@@ -90,7 +90,7 @@ public final class FQTool {
         
         for(FileQueue fq : queues) {
             if(fq.name.equals(name)) {
-			    try {
+            try {
                     fq.close();
                 } catch (IOException e) {
                     LOG.error("Fail to close queue {}", fq.name, e);
