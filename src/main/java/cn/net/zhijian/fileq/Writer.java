@@ -245,6 +245,11 @@ final class Writer implements IWriter {
     }
 
     @Override
+    public boolean isClosed() {
+        return qFile == null;
+    }
+
+    @Override
     public int curFileNo() {
         return curFileNo;
     }

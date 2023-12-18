@@ -43,7 +43,7 @@ public final class FileQueue implements IFile {
     private final IDispatcher dispatcher;
 
     //only one writer, more than one consumers
-    private IWriter writer;
+    private final IWriter writer;
     private final boolean bufferedPoll;
     private final int bufferedPos;
     public final String name;
@@ -110,6 +110,9 @@ public final class FileQueue implements IFile {
      */
     public synchronized void addConsumer(String name, boolean sequential,
             InitPosition cp, boolean autoConrim, IMessageHandler handler) throws FQException {
+        if(writer.isClosed()) {
+            throw new FQException("invalid writer,it's closed");
+        }
         IReader reader;
         try {
             if(sequential) {
@@ -142,13 +145,12 @@ public final class FileQueue implements IFile {
 
     @Override
     public synchronized void close() throws IOException {
-        if(writer == null) {
+        if(writer.isClosed()) {
             return;
         }
         LOG.info("Close the queue {}", writer.queueName());
         dispatcher.rmvConsumers(writer.queueName());
         writer.close();
-        writer = null;
     }
     
     public static class Builder {

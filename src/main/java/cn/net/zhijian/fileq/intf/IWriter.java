@@ -37,4 +37,5 @@ public interface IWriter extends IFile {
      * when dispatcher is idle a moment.
      */
     void hasten();
+    boolean isClosed();
 }

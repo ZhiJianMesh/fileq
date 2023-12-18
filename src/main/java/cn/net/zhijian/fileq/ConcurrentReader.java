@@ -66,6 +66,9 @@ class ConcurrentReader implements IReader {
     public ConcurrentReader(String name, IWriter writer,
             boolean buffered, int bufferedPos,
             InitPosition pos) throws IOException {
+        if(writer == null) {
+            throw new IOException("writer is null");
+        }
         this.name = name;
         this.writer = writer;
         this.buffered = buffered;

@@ -61,7 +61,7 @@ jar {
             'Build-OS'       : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
         )
     }
-    baseName 'cn.net.zhijian.fileq'
+    archiveBaseName = 'cn.net.zhijian.fileq'
 }
 
 tasks.named('test') {

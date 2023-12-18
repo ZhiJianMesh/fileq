@@ -90,7 +90,7 @@ public final class FQTool {
         
         for(FileQueue fq : queues) {
             if(fq.name.equals(name)) {
-            try {
+                try {
                     fq.close();
                 } catch (IOException e) {
                     LOG.error("Fail to close queue {}", fq.name, e);
@@ -118,6 +118,7 @@ public final class FQTool {
         for(FileQueue fq : queues) {
             fq.close();
         }
+        queues.clear();
         dispatcher.shutdown();
     }
 }
