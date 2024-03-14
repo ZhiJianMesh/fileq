@@ -15,6 +15,8 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
+import java.io.Closeable;
+
 /**
  * All read actions are handled in one thread.
  * In Dispatcher, only one thread, read all queues' files,
@@ -22,7 +24,7 @@ package cn.net.zhijian.fileq.intf;
  * @author Lgy
  *
  */
-public interface IReader extends IFile {
+public interface IReader extends IFile, Closeable {
     /**
      * Current reading file no
      * It is used to judge which file should be reserved.

@@ -86,23 +86,21 @@ public final class FQTool {
     }
 
     public static void remove(String name) {
-        int idx = -1;
-        
+        int idx = 0;
+
         for(FileQueue fq : queues) {
-            if(fq.name.equals(name)) {
-                try {
-                    fq.close();
-                } catch (IOException e) {
-                    LOG.error("Fail to close queue {}", fq.name, e);
-                }
-                break;
+            if(!fq.name.equals(name)) {
+                idx++;
+                continue;
             }
 
-            idx++;
-        }
-        
-        if(idx >= 0) {
+            try {
+                fq.close();
+            } catch (IOException e) {
+                LOG.error("Fail to close queue {}", fq.name, e);
+            }
             queues.remove(idx);
+            break;
         }
     }
 

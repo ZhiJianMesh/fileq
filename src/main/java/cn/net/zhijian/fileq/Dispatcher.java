@@ -40,7 +40,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  */
 final class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
-    private static final long WAIT_TIME = 1L * 1000 * 1000 * 1000; //1 second
+    private static final long WAIT_TIME = 1000L * 1000 * 1000; //1 second
     
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();

@@ -38,7 +38,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * When a message get out from the queue,
  * it will never roll back if consume failed.
  * If messages can be "handled concurrently", use it.
- * 
+ * <p>
  * Queues' read actions are all operated in one thread.
  * 
  * @author Lgy
@@ -108,7 +108,7 @@ class ConcurrentReader implements IReader {
        
         LOG.debug("open `{}`,readPos:{}", writer.queueFileName(curFileNo), readPos);
         qFile = open(curFileNo);
-        if(readPos > FILE_HEAD_LEN) {
+        if(readPos > FILE_HEAD_LEN && qFile != null) {
             //first time read, skip the content that has been read
             qFile.skip(readPos - FILE_HEAD_LEN);
         }

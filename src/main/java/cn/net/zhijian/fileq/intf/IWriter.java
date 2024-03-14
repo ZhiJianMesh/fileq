@@ -15,6 +15,7 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
+import java.io.Closeable;
 import cn.net.zhijian.fileq.FQException;
 
 /**
@@ -22,15 +23,15 @@ import cn.net.zhijian.fileq.FQException;
  * @author Lgy
  *
  */
-public interface IWriter extends IFile {
-    public int curFileNo();
-    public int minFileNo();
-    public int size();
-    public String dir(); //queue file dir
-    public String name(); //queue name
-    public String queueName(); //dir + queue-name
-    public String queueFileName(int fileNo);
-    public void write(byte[] msg, int offset, int len, boolean chkHash) throws FQException;
+public interface IWriter extends IFile, Closeable {
+    int curFileNo();
+    int minFileNo();
+    int size();
+    String dir(); //queue file dir
+    String name(); //queue name
+    String queueName(); //dir + queue-name
+    String queueFileName(int fileNo);
+    void write(byte[] msg, int offset, int len, boolean chkHash) throws FQException;
     
     /**
      * Hasten writer to flush data to stream

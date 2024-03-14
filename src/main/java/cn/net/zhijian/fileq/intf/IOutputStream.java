@@ -15,9 +15,10 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
+import java.io.Closeable;
 import java.io.IOException;
 
-public interface IOutputStream extends IFile {
+public interface IOutputStream extends IFile, Closeable {
     void write(byte[] content) throws IOException;
     void write(byte[] content, int offset, int len) throws IOException;
     /**

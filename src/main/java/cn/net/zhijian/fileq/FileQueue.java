@@ -143,7 +143,6 @@ public final class FileQueue implements IFile {
         dispatcher.rmvConsumer(writer.queueName(), name);
     }
 
-    @Override
     public synchronized void close() throws IOException {
         if(writer.isClosed()) {
             return;

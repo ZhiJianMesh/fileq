@@ -15,9 +15,10 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
+import java.io.Closeable;
 import java.io.IOException;
 
-public interface IInputStream extends IFile {
+public interface IInputStream extends IFile, Closeable {
     /**
      * Read content from the stream,
      * @param buff Buffer,should promise it has enough memory to save the message

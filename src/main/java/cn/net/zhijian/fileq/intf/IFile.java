@@ -15,14 +15,12 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.intf;
 
-import java.io.Closeable;
-
 /**
  * Queue file
  * @author Lgy
  *
  */
-public interface IFile extends Closeable {
+public interface IFile {
     int DEFAULT_BUF_LEN = 1024;
     
     byte[] MAGIC = "QUEUE".getBytes();
@@ -41,7 +39,7 @@ public interface IFile extends Closeable {
     
     
     enum InitPosition {CUR, HEAD, END}
-    
+
     static int hashCode(byte[] b, int offset, int len) {
         int h = 0;
         int end = len + offset;
