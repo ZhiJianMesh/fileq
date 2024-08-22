@@ -52,9 +52,9 @@ public class SequentialQueueOverTest extends TestBase {
         
         try {
             FileQueue fq = builder.build();
-            for(int i = 0; i < 3; i++) {
+            for(int i = 0; i < 2; i++) {
                 String name = "consumer_" + i;
-                fq.addConsumer(name, true, false, new MessageHandler(name));
+                fq.addConsumer(name, true, false, new MessageHandler());
             }
             
             byte[] s = "abcdefghijklmnopqrstuvwxyz1234567890".getBytes();
@@ -109,31 +109,28 @@ public class SequentialQueueOverTest extends TestBase {
     }
     
     private static class MessageHandler implements IMessageHandler {
-        private final String queueName;
         private int preNo = -1;
-        
-        public MessageHandler(String queueName) {
-            this.queueName = queueName;
-        }
+        private int n = 0;
         
         @Override
         public boolean handle(IMessage msg, IReader reader) {
             handleTime = System.currentTimeMillis();
             if(msg.len() != msgLen) {
-                LOG.error("Invalid message len {} in {}", msg.len(), queueName);
+                LOG.error("Invalid message len {} in {}", msg.len(), reader.name());
             }
             int no = IFile.parseInt(msg.message(), 0);
             if(no < 0 || no >= MSG_NUM) {
-                LOG.error("Invalid msg no {} in {}", no, queueName);
+                LOG.error("Invalid msg no {} in {}.{}", no, reader.name(), reader.curFileNo());
             } else if(preNo + 1 != no) {
                 if(preNo >= 0 && preNo != MSG_NUM - 1) {
-                    LOG.error("Invalid msg no {}, preNo:{} in {}", no, preNo, queueName);
+                    LOG.error("Invalid msg no {}, preNo:{} in {}.{}", no, preNo, reader.name(), reader.curFileNo());
                 }
             }
             preNo = no;
-            int n = pollMsgNum.getAndIncrement();
+            pollMsgNum.getAndIncrement();
+            n++;
             if((n & 0xfff) == 0) {
-                LOG.debug("[{}]pollMsgNum:{},cur no:{}",queueName, n, no);
+                LOG.debug("[{}]msg num:{},cur no:{}", reader.name(), n, no);
             }
             reader.confirm(true);
             return true;

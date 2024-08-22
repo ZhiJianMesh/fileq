@@ -54,7 +54,7 @@ public class SequentialQueueTest extends TestBase {
             FileQueue fq = builder.build();
             for(int i = 0; i < threadNum * 2; i++) {
                 String name = "consumer_" + i;
-                fq.addConsumer(name, true, false, new MessageHandler(name));
+                fq.addConsumer(name, true, false, new MessageHandler());
             }
             
             byte[] content = new byte[10];
@@ -97,29 +97,29 @@ public class SequentialQueueTest extends TestBase {
     }
     
     private static class MessageHandler implements IMessageHandler {
-        private final String queueName;
         private int preNo = -1;
-        
-        public MessageHandler(String queueName) {
-            this.queueName = queueName;
-        }
+        private int n = 0;
         
         @Override
         public boolean handle(IMessage msg, IReader reader) {
             handleTime = System.currentTimeMillis();
             if(msg.len() != 10) {
-                LOG.error("Invalid message len {} in {}", msg.len(), queueName);
+                LOG.error("Invalid message len {} in {}", msg.len(), reader.name());
             }
             int no = IFile.parseInt(msg.message(), 0);
             if(no < 0 || no >= MSG_NUM) {
-                LOG.error("Invalid msg no {} in {}", no, queueName);
+                LOG.error("Invalid msg no {} in {}", no, reader.name());
             } else if(preNo + 1 != no) {
                 if(preNo >= 0 && preNo != MSG_NUM - 1) {
-                    LOG.error("Invalid msg no {}, preNo:{} in {}", no, preNo, queueName);
+                    LOG.error("Invalid msg no {}, preNo:{} in {}", no, preNo, reader.name());
                 }
             }
             preNo = no;
             pollMsgNum.getAndIncrement();
+            n++;
+            if((n & 0xfff) == 0) {
+                LOG.debug("[{}]msg num:{},cur no:{}", reader.name(), n, no);
+            }
             reader.confirm(true);
             return true;
         } 

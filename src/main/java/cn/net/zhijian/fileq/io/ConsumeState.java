@@ -27,7 +27,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
  * Consume state, record consume position.
- * It will save position info to disk every 1000 times,
+ * It will save position info to disk every 1000 times reading,
  * or it exceeds 1000ms until fore saving disk.
  * The position is written sequential, the last one is the real one. 
  * It is a high cost operation to save small content to a file.
@@ -49,7 +49,7 @@ public final class ConsumeState implements Closeable, IFile {
     private int fileNo = 0;
     private int readPos = FILE_HEAD_LEN;
     private int bufferedTimes = 0;
-    private volatile boolean changed = false;
+    private boolean changed = false; //identify whether state changed or not
 
     public ConsumeState(String fileName, int bufferedTimes) throws IOException {
         this.fileName = fileName;
@@ -133,10 +133,14 @@ public final class ConsumeState implements Closeable, IFile {
         save(force || this.bufferedTimes >= maxBufferedTimes);
     }
 
-    public void save(boolean force) {
+    private void save(boolean force) {
+        if(!this.changed) {
+            return;
+        }
+        
         long cur = System.currentTimeMillis();
         if(!force) {
-            if(cur - recordTime < MAX_SAVE_INTERVAL || !this.changed) {
+            if(cur - recordTime < MAX_SAVE_INTERVAL) {
                 return;
             }
         }
@@ -151,13 +155,14 @@ public final class ConsumeState implements Closeable, IFile {
                 } else {
                     /*
                      * Merge 2 integer values into a buffer
-                     * to reduce write-operation
+                     * to reduce write-operation times
                      */
                     IFile.encodeInt(buf, fileNo, 0);
                     IFile.encodeInt(buf, readPos, Integer.BYTES);
                     stateFile.write(buf);
                     stateFile.flush(); //It's very important, save it to disk right now
                 }
+                this.changed = false;
             } catch (IOException e) {
                 LOG.error("Fail to save consumer {} state", this.fileName, e);
             }

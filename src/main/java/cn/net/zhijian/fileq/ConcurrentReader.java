@@ -176,26 +176,25 @@ class ConcurrentReader implements IReader {
     @Override
     public IMessage read() { //run in a single thread
         int curFileNo = this.consumeState.fileNo();
-
-        if(qFile == null) {
-            /*
-             * Often fails when opening a queue file which is initializing
-             * So reopen it
-             */
-            try {
-                qFile = open(curFileNo);
-            } catch (IOException e) {
-                LOG.error("Fail to open file {}", writer.curFileNo(), e);
-            }
-        }
-
         if(curFileNo == writer.curFileNo()) {//read the last file
-            if(!qFile.hasMore()) {
+            if(qFile == null) {
+                /*
+                 * Often fails when opening a queue file which is initializing
+                 * So reopen it
+                 */
+                try {
+                    qFile = open(curFileNo);
+                } catch (IOException e) {
+                    LOG.error("Fail to open file {}", writer.curFileNo(), e);
+                }
+            }
+            
+            if(qFile == null || !qFile.hasMore()) {
                 this.consumeState.save(qFile.readPos(), false);//save consume pos when idle
-                return null; //the writing file, wait for new content
+                return null; //no new message, waiting
             }
         } else if(qFile == null || !qFile.hasMore()) {
-            //when reaching end point,close the old one,and open the next one
+            //when reaching the end,close the old one,and open next one
             FileUtil.closeQuietly(qFile);
             if((qFile = openNext()) == null) {
                 return null;
@@ -209,7 +208,7 @@ class ConcurrentReader implements IReader {
             len &= MSG_LEN_MASK;
             if(len > MAX_MSG_SIZE) {
                 qFile.skip(len);
-                this.consumeState.save(qFile.readPos(), false);//write pos when idle
+                this.consumeState.save(qFile.readPos(), false);//save position when idle
                 LOG.warn("Invalid message length({}) in file {}@{}", len, qFile.name(), qFile.readPos());
                 return null;
             }
