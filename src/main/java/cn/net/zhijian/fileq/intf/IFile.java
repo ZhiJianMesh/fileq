@@ -31,8 +31,8 @@ public interface IFile {
     int FILE_HEAD_LEN = MAGIC.length + 1 + Integer.BYTES;
     
     int VER = 0x00;
-    int MAX_MSG_SIZE = (1 << 20);
-    int MIN_FILESIZE = (1 << 23);
+    int MAX_MSG_SIZE = (1 << 20); //1M
+    int MIN_FILESIZE = (1 << 20);
     
     int MSG_HASH_FLAG = 0x40000000;
     int MSG_LEN_MASK = 0x3fffffff;

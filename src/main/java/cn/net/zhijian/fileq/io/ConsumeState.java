@@ -49,7 +49,7 @@ public final class ConsumeState implements Closeable, IFile {
     private int fileNo = 0;
     private int readPos = FILE_HEAD_LEN;
     private int bufferedTimes = 0;
-    private boolean changed = false;
+    private volatile boolean changed = false;
 
     public ConsumeState(String fileName, int bufferedTimes) throws IOException {
         this.fileName = fileName;

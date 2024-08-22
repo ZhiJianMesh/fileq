@@ -1,5 +1,6 @@
 package cn.net.zhijian.fileq;
 
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -22,7 +23,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * Write num:20000, speed:116959, interval:171
  * Consume num:40000, speed:50825, interval:787, handled message num:40000
  */
-public class SequentialQueueTest extends TestBase {
+public class SequentialQueueOverTest extends TestBase {
     private static final int MSG_NUM = 400000;
     private static final int WAIT_TIME = 3000;
     private static Logger LOG = LogUtil.getInstance();
@@ -30,46 +31,57 @@ public class SequentialQueueTest extends TestBase {
     private static CountDownLatch lock = new CountDownLatch(1);
 	private static long handleTime = System.currentTimeMillis();
 	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
+	private static int pushMsgNum = 0;  
+	private static int msgLen = 0;
     
     public static void main(String[] args) {
-        LOG.debug("Start test");
-        int threadNum = Runtime.getRuntime().availableProcessors();
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+        LOG.debug("Start SequentialQueueOverTest");
+        ExecutorService threadPool = Executors.newCachedThreadPool();
         long start;
-        long end;
         Timer checkOver = new Timer("Checking");
-        int pushMsgNum = 0;        
-        
+
         Dispatcher dispatcher = new Dispatcher(threadPool);
         String dir = FileUtil.addPath(workDir, "queue1");
         FileQueue.Builder builder = new FileQueue.Builder(dir, "tt")
                 .dispatcher(dispatcher)
-                .maxFileNum(40)
-                .maxFileSize(8 * 1024 * 1024)
+                .maxFileNum(3) //set small num and size to make it easily be overed
+                .maxFileSize(1 * 1024 * 1024)
                 .bufferedPush(true)
                 .bufferedPoll(true);
         dispatcher.start();
         
         try {
             FileQueue fq = builder.build();
-            for(int i = 0; i < threadNum * 2; i++) {
+            for(int i = 0; i < 3; i++) {
                 String name = "consumer_" + i;
                 fq.addConsumer(name, true, false, new MessageHandler(name));
             }
             
-            byte[] content = new byte[10];
-            byte[] s = "aaaaaa".getBytes();
+            byte[] s = "abcdefghijklmnopqrstuvwxyz1234567890".getBytes();
+            msgLen = s.length + Integer.BYTES;
+            byte[] content = new byte[msgLen];
             System.arraycopy(s, 0, content, Integer.BYTES, s.length);
-            
             start = System.currentTimeMillis();
-            for(int i = 0; i < MSG_NUM; i++) {
-                IFile.encodeInt(content, i, 0);
-                fq.push(content);
-                pushMsgNum++;
-            }
-            end = System.currentTimeMillis();
-            long interval = end > start ? end - start : 1;
-            LOG.debug("Push num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            
+            //push messages in a standalone thread
+            new Thread() {public void run() {
+                Random r = new Random();
+                for(int i = 0; i < MSG_NUM; i++) {
+                    IFile.encodeInt(content, i, 0);
+                    try {
+                        if(r.nextBoolean()) {
+                            Thread.sleep(0, 1000);
+                        }
+                        fq.push(content);
+                    } catch (Exception e) {
+                        LOG.error("Fail to push msg", e);
+                    }
+                    pushMsgNum++;
+                }
+                long end = System.currentTimeMillis();
+                long interval = end > start ? end - start : 1;
+                LOG.debug("Push num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+            }}.start();
             
             checkOver.schedule(new TimerTask() {
 				@Override
@@ -81,7 +93,7 @@ public class SequentialQueueTest extends TestBase {
             }, 1000, 1000);
             
             lock.await();
-            interval = handleTime > start ? handleTime - start : 1;
+            long interval = handleTime > start ? handleTime - start : 1;
             LOG.debug("Poll num:{},speed:{}/s,interval:{}ms, handled message num:{}",
             		dispatcher.handledMsgNum(),
             		(1000L * dispatcher.handledMsgNum()) / interval,
@@ -107,7 +119,7 @@ public class SequentialQueueTest extends TestBase {
         @Override
         public boolean handle(IMessage msg, IReader reader) {
             handleTime = System.currentTimeMillis();
-            if(msg.len() != 10) {
+            if(msg.len() != msgLen) {
                 LOG.error("Invalid message len {} in {}", msg.len(), queueName);
             }
             int no = IFile.parseInt(msg.message(), 0);
@@ -119,7 +131,10 @@ public class SequentialQueueTest extends TestBase {
                 }
             }
             preNo = no;
-            pollMsgNum.getAndIncrement();
+            int n = pollMsgNum.getAndIncrement();
+            if((n & 0xfff) == 0) {
+                LOG.debug("[{}]pollMsgNum:{},cur no:{}",queueName, n, no);
+            }
             reader.confirm(true);
             return true;
         } 

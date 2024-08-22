@@ -17,6 +17,8 @@ package cn.net.zhijian.fileq;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 
@@ -45,6 +47,7 @@ final class Writer implements IWriter {
     private final int maxFileNum;
     private final IDispatcher dispatcher;
     private final boolean buffered;
+    private final List<File> failToDelFiles = new ArrayList<>();
 
     private int curFileNo = 0;
     private int minFileNo = Integer.MAX_VALUE;
@@ -160,12 +163,24 @@ final class Writer implements IWriter {
         if (curNum < this.maxFileNum) {
             return;
         }
+
         int uselessNum = dispatcher.minFileNo(queueName) - this.minFileNo;
-        int rmvNum = Math.min(curNum - this.maxFileNum, uselessNum); //不可以删除尚未消费的队列文件
+        //can't delete files which is still being consumed
+        int rmvNum = Math.min(curNum - this.maxFileNum, uselessNum);
         if(rmvNum <= 0) {
             return;
         }
-        LOG.info("File num more than {}, remove {} files", this.maxFileNum, rmvNum);
+        
+        //delete files that failed to delete fore times
+        for(int i = failToDelFiles.size() - 1; i >= 0; i--) {
+            File f = failToDelFiles.get(i);
+            if(f.delete()) {
+                LOG.info("Remove file {}", f);
+                failToDelFiles.remove(i);
+            }
+        }
+        
+        LOG.info("File num more than {}, remove {} file(s)", this.maxFileNum, rmvNum);
         for (int i = 0; i < rmvNum; i++) {
             String fn = queueFileName(this.minFileNo + i);
             File f = new File(fn);
@@ -174,20 +189,22 @@ final class Writer implements IWriter {
             }
             LOG.info("Remove file {}", fn);
             try {
-                if(!f.delete()) {
+                if(!f.delete()) { //sometimes failed here
                     LOG.error("Fail to delete file {}", fn);
+                    failToDelFiles.add(f);
                 }
             } catch (Exception e) {
                 LOG.error("Fail to delete file {}", fn, e);
+                failToDelFiles.add(f);
             }
         }
         this.minFileNo += rmvNum;
     }
 
     private void openNext() throws IOException {
-        this.curFileNo++;
         FileUtil.closeQuietly(qFile);
         qFile = null;
+        this.curFileNo++;
         removeFiles(this.curFileNo);
         qFile = open(this.curFileNo);
     }

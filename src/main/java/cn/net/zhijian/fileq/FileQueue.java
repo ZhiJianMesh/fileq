@@ -102,14 +102,14 @@ public final class FileQueue implements IFile {
      *     If false, messages are handled concurrently, and doesn't care about result
      * @param cp Initital position
      * @param handler message handler
-     * @param autoConrim Automatically confirm messages
-     *  If true,dispatcher will call reader.confirm, otherwise
+     * @param autoConfirm Automatically confirm messages
+     *  If true,dispatcher will call reader.confirm automatically, otherwise
      *  reader.confirm should be called in message handler yourself. 
-     *  It's useful in asynchronous handler
+     *  It's useful in asynchronous/synchronous handler
      * @throws FQException wrap of IOException
      */
     public synchronized void addConsumer(String name, boolean sequential,
-            InitPosition cp, boolean autoConrim, IMessageHandler handler) throws FQException {
+            InitPosition cp, boolean autoConfirm, IMessageHandler handler) throws FQException {
         if(writer.isClosed()) {
             throw new FQException("invalid writer,it's closed");
         }
@@ -123,12 +123,12 @@ public final class FileQueue implements IFile {
         } catch(IOException e) {
             throw new FQException(e);
         }
-        dispatcher.addConsumer(autoConrim, reader, handler);
+        dispatcher.addConsumer(autoConfirm, reader, handler);
     }
     
-    public void addConsumer(String name, boolean sequential, boolean autoConrim,
+    public void addConsumer(String name, boolean sequential, boolean autoConfirm,
             IMessageHandler handler) throws FQException {
-        addConsumer(name, sequential, InitPosition.CUR, autoConrim, handler);
+        addConsumer(name, sequential, InitPosition.CUR, autoConfirm, handler);
     }
 
     public void addConsumer(String name, boolean sequential,
@@ -196,7 +196,7 @@ public final class FileQueue implements IFile {
         }
         
         /**
-         * After each message polled out, will record consume position to a file.
+         * After each message polled out, it will record consume-position to a file.
          * It's high cost to write it directly to disk each time.
          * It occupies more than 1/3 time of the whole poll-processing.
          * So, buffer it into 2 integer variables, after bufferedPos times,

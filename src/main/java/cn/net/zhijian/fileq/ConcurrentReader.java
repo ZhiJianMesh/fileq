@@ -124,7 +124,8 @@ class ConcurrentReader implements IReader {
         
         int fileSize = (int)f.length();
         if(fileSize < FILE_HEAD_LEN) {
-            throw new IOException("Invalid queue file " + fn +", too short");
+            LOG.warn("Invalid queue file {}, too short", fn);
+            return null;
         }
         
         IInputStream qFile;
@@ -151,7 +152,7 @@ class ConcurrentReader implements IReader {
         return qFile;
     }
     
-    protected IInputStream openNext() {
+    private IInputStream openNext() {
         IInputStream f = null;
         int fileNo = this.consumeState.fileNo() + 1;
         int last = writer.curFileNo();
@@ -176,23 +177,31 @@ class ConcurrentReader implements IReader {
     public IMessage read() { //run in a single thread
         int curFileNo = this.consumeState.fileNo();
 
-        if(curFileNo == writer.curFileNo()) {//read the last file
-            if(qFile == null) {
-                return null; //wait new content
+        if(qFile == null) {
+            /*
+             * Often fails when opening a queue file which is initializing
+             * So reopen it
+             */
+            try {
+                qFile = open(curFileNo);
+            } catch (IOException e) {
+                LOG.error("Fail to open file {}", writer.curFileNo(), e);
             }
-            
+        }
+
+        if(curFileNo == writer.curFileNo()) {//read the last file
             if(!qFile.hasMore()) {
-                this.consumeState.save(qFile.readPos(), false);//write pos when idle
+                this.consumeState.save(qFile.readPos(), false);//save consume pos when idle
                 return null; //the writing file, wait for new content
             }
         } else if(qFile == null || !qFile.hasMore()) {
-            //old file, when the reaching end point, open next one
+            //when reaching end point,close the old one,and open the next one
             FileUtil.closeQuietly(qFile);
             if((qFile = openNext()) == null) {
                 return null;
             }
         }
-        
+
         try {
             int len = readInt();
             boolean chkHash = (len & MSG_HASH_FLAG) != 0;
@@ -217,7 +226,7 @@ class ConcurrentReader implements IReader {
                 qFile.read(content, 0, len);
             }
             
-            //record read position in confirm
+            //record read position in confirm method,not here
             return generateMessage(len, content);
         } catch (IOException e) {
             LOG.error("Fail to read file {}", curFileName(), e);

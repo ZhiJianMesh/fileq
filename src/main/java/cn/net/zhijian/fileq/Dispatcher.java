@@ -41,14 +41,14 @@ import cn.net.zhijian.fileq.util.LogUtil;
 final class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
     private static final long WAIT_TIME = 1000L * 1000 * 1000; //1 second
-    
+
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
     private long totalMsgNum = 0L;
     private boolean goon = true; //continue to run or not
     private volatile boolean tracing = true; 
-    
+
     private static class Consumer implements Closeable {
         private final IReader reader;
         private final IMessageHandler handler;
@@ -186,7 +186,7 @@ final class Dispatcher extends Thread implements IDispatcher {
             if(msgNum == 0) {
                 /*
                  * In sequential mode,
-                 * When a message is in processing, dispatcher will be blocked here.
+                 * When a message is being processed, dispatcher will be blocked here.
                  * After handled, lock is waked up.
                  * Locked, waked up, again and again, waste too much time.
                  * 
@@ -233,7 +233,7 @@ final class Dispatcher extends Thread implements IDispatcher {
 
     @Override
     public void ready() {
-        if(tracing) { //Needn't notify, notification is a high cost operation
+        if(tracing) { //Tracing, needn't notify, notification is a high cost operation
             return;
         }
         LockSupport.unpark(this);

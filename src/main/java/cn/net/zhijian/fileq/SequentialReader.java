@@ -64,7 +64,7 @@ final class SequentialReader extends ConcurrentReader {
     }
 
     /**
-     * should 
+     * read a message from queue 
      */
     @Override
     public IMessage read() {
