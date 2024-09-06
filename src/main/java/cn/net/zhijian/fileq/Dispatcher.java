@@ -33,15 +33,15 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * Receive writer's notification, read a message,
  * then send it to consumers' thread pool.
  * There is no more processing in it, only distribute.
- * So,in Dispatcher,one thread handles all queues' read-action.
- * 
+ * In Dispatcher,one thread handles all queues' read-action.
+ * So, all IReader all called in one thread, needn't synchronize
  * @author Lgy
  *
  */
 final class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
     private static final long WAIT_TIME = 1000L * 1000 * 1000; //1 second
-
+    
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
@@ -54,6 +54,8 @@ final class Dispatcher extends Thread implements IDispatcher {
         private final IMessageHandler handler;
         private final String queueName;
         private final String name;
+        private boolean paused = false;
+        
         /*
          * auto confirmed, 
          * needn't call reader.confirm in message handler.
@@ -108,6 +110,14 @@ final class Dispatcher extends Thread implements IDispatcher {
             }
             return null;
         }
+        
+        public boolean paused() {
+            return paused;
+        }
+        
+        public void setPause(boolean v) {
+            this.paused = v;
+        }
     }
     
     private static class Queue {
@@ -154,6 +164,14 @@ final class Dispatcher extends Thread implements IDispatcher {
             }
             this.consumers = new Consumer[] {};
         }
+        
+        void setPause(String name, boolean v) {
+            for(Consumer c : this.consumers) {
+                if(name == null || c.name.equals(name)) {
+                    c.setPause(v);
+                }
+            }
+        }
     }
     
     public Dispatcher(ExecutorService threadPool) {
@@ -173,6 +191,9 @@ final class Dispatcher extends Thread implements IDispatcher {
                 queue = q.getValue();
                 count = 0;
                 for(Consumer c : queue.consumers) {
+                    if(c.paused()) {
+                        continue;
+                    }
                     IMessage msg = c.read();
                     if(msg == null) {
                         continue;
@@ -229,6 +250,18 @@ final class Dispatcher extends Thread implements IDispatcher {
     public void shutdown() {
         goon = false;
         LockSupport.unpark(this);
+    }
+
+    @Override
+    public void pauseConsumer(String queue, String consumer) {
+        Queue q = queues.get(queue);
+        q.setPause(consumer, true);
+    }
+
+    @Override
+    public void continueConsumer(String queue, String consumer) {
+        Queue q = queues.get(queue);
+        q.setPause(consumer, false);
     }
 
     @Override

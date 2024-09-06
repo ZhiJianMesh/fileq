@@ -135,6 +135,24 @@ public final class FileQueue implements IFile {
             IMessageHandler handler) throws FQException {
         addConsumer(name, sequential, InitPosition.CUR, true, handler);
     }
+    
+
+    /**
+     * pause a consumer, not stopped
+     * @param consumer consumer name, if it's null, pause all
+     */
+    public void pauseConsumer(String consumer) {
+        dispatcher.pauseConsumer(this.name, consumer);
+    }
+
+    /**
+     * continue a consumer
+     * @param consumer consumer name, if it's null, continue all
+     */
+    public void continueConsumer(String consumer) {
+        dispatcher.continueConsumer(this.name, consumer);
+    }
+    
     /**
      * Remove a consumer
      * @param name Consumer name

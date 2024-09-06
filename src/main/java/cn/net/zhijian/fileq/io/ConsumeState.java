@@ -32,6 +32,9 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * The position is written sequential, the last one is the real one. 
  * It is a high cost operation to save small content to a file.
  * It occupies about 1/3 time when reading a message.
+ * So you should set 'bufferedTimes' with a proper value, for example 1000.
+ * It means that write to disk after 1000 times pool.
+ * When crashing, it will cause to re-read max 1000 messages after recovering.
  * @author Lgy
  *
  */

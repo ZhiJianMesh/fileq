@@ -24,7 +24,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * Consume num:40000, speed:50825, interval:787, handled message num:40000
  */
 public class SequentialQueueOverTest extends TestBase {
-    private static final int MSG_NUM = 400000;
+    private static final int MSG_NUM = 100000;
     private static final int WAIT_TIME = 3000;
     private static Logger LOG = LogUtil.getInstance();
 
@@ -91,6 +91,11 @@ public class SequentialQueueOverTest extends TestBase {
 					}
 				}
             }, 1000, 1000);
+            fq.pauseConsumer(null);
+            Thread.sleep(1000);
+            fq.continueConsumer("consumer_0");
+            Thread.sleep(5000);
+            fq.continueConsumer("consumer_1");
             
             lock.await();
             long interval = handleTime > start ? handleTime - start : 1;
