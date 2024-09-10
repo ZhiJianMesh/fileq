@@ -15,6 +15,7 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.io;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,15 +37,16 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  *
  */
 public final class SafeOutputStream implements IOutputStream {
-    public final String name;
-    private int size = 0;
+    private final File file;
+    //writing is synchronized in Writer.write, read in multi-threads
+    private volatile int size = 0;
     private FileOutputStream fos;
     private FileChannel fc;
 
-    public SafeOutputStream(String file) throws FileNotFoundException {
-        fos = new FileOutputStream(file);
-        fc = fos.getChannel();
-        name = file;
+    public SafeOutputStream(File file) throws FileNotFoundException {
+        this.fos = new FileOutputStream(file);
+        this.fc = fos.getChannel();
+        this.file = file;
     }
 
     @Override
@@ -65,8 +67,8 @@ public final class SafeOutputStream implements IOutputStream {
     }
     
     @Override
-    public String name() {
-        return name;
+    public File file() {
+        return file;
     }
 
     @Override

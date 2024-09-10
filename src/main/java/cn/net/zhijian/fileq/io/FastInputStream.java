@@ -29,24 +29,22 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  *
  */
 public final class FastInputStream implements IInputStream {
-    private static final int BUF_SIZE = 1024 * 1024;
-    public final String name;
+    private static final int BUF_SIZE = 128 * 1024;
+    public final File file;
 
     private FileInputStream fis;
     private BufferedInputStream bis;
     private int readPos = 0;
-    private int available = 0;
+    private volatile int available = 0;
 
-    public FastInputStream(String file) throws IOException {
-        fis = new FileInputStream(file);
-        bis = new BufferedInputStream(fis, BUF_SIZE);
-        name = file;
+    public FastInputStream(File file, int bufSize) throws IOException {
+        this.fis = new FileInputStream(file);
+        this.bis = new BufferedInputStream(fis, bufSize);
+        this.file = file;
     }
     
     public FastInputStream(File file) throws IOException {
-        fis = new FileInputStream(file);
-        bis = new BufferedInputStream(fis);
-        name = file.getCanonicalPath();
+        this(file, BUF_SIZE);
     }
 
     @Override
@@ -71,8 +69,8 @@ public final class FastInputStream implements IInputStream {
     }
     
     @Override
-    public boolean hasMore() {
-        if(available > 0) {
+    public boolean hasMore(int len) {
+        if(available >= len) {
             return true;
         }
 
@@ -80,7 +78,7 @@ public final class FastInputStream implements IInputStream {
             //available() is a high-cost IO operation,
             //Here,needn't a precise value, so use a cached one
             available = bis.available();
-            return available > 0;
+            return available >= len;
         } catch (IOException e) {
             return false;
         }
@@ -100,7 +98,12 @@ public final class FastInputStream implements IInputStream {
     }
 
     @Override
-    public String name() {
-        return name;
+    public File file() {
+        return file;
+    }
+    
+    @Override
+    public String toString() {
+        return "(" + file + ",pos " + readPos + ",available " + available + ')';
     }
 }

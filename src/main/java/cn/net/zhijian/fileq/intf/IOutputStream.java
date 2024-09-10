@@ -16,6 +16,7 @@ limitations under the License.
 package cn.net.zhijian.fileq.intf;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 
 public interface IOutputStream extends IFile, Closeable {
@@ -27,5 +28,5 @@ public interface IOutputStream extends IFile, Closeable {
      */
     void flush() throws IOException;
     int size();
-    String name();
+    File file();
 }

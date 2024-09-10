@@ -41,10 +41,9 @@ import cn.net.zhijian.fileq.util.LogUtil;
 public final class ConsumeState implements Closeable, IFile {
     private static final Logger LOG = LogUtil.getInstance();
     private static final int MAX_SAVE_INTERVAL = 1000;
-    //max problem is that it may cause re-consume 1000 messages
     private static final int MAX_SIZE = 100 * 1024 * Integer.BYTES * 2 + FILE_HEAD_LEN;
 
-    private final String fileName;
+    private final File file;
     private final int maxBufferedTimes;
     private final byte[] buf = new byte[Integer.BYTES * 2];
     private IOutputStream stateFile;
@@ -54,19 +53,18 @@ public final class ConsumeState implements Closeable, IFile {
     private int bufferedTimes = 0;
     private boolean changed = false; //identify whether state changed or not
 
-    public ConsumeState(String fileName, int bufferedTimes) throws IOException {
-        this.fileName = fileName;
+    public ConsumeState(File file, int bufferedTimes) throws IOException {
+        this.file = file;
         this.maxBufferedTimes = bufferedTimes;
-        File f = new File(fileName);
 
-        if(!f.exists()) { //if not exists, all start from 0
+        if(!file.exists()) { //if not exists, all start from 0
             init(0, FILE_HEAD_LEN);
             return;
         }
         
         int fileNo = 0;
         int readPos = FILE_HEAD_LEN;
-        load : try(FastInputStream fis = new FastInputStream(fileName)) {
+        load : try(FastInputStream fis = new FastInputStream(file, MAX_SIZE)) {
             byte[] head = new byte[FILE_HEAD_LEN];
             int readLen = fis.read(head);
             if(readLen < FILE_HEAD_LEN) {
@@ -93,8 +91,8 @@ public final class ConsumeState implements Closeable, IFile {
         this.fileNo = fileNo;
         this.readPos = readPos;
 
-        LOG.info("Create read-state file {}", this.fileName);
-        this.stateFile = new SafeOutputStream(this.fileName);
+        LOG.info("Create read-state file {}", this.file);
+        this.stateFile = new SafeOutputStream(this.file);
         //MAGIC(5) + ver(1) + 0(4) + fileNo(4) + readPos(4) ...
         byte[] head = new byte[FILE_HEAD_LEN + Integer.BYTES * 2];
         System.arraycopy(MAGIC, 0, head, 0, MAGIC.length);
@@ -111,7 +109,7 @@ public final class ConsumeState implements Closeable, IFile {
         if(stateFile == null) {
             return;
         }
-        LOG.debug("Close state {}, {}", fileName, this);
+        LOG.debug("Close state {}, {}", file, this);
         save(true);
         stateFile.close();
         stateFile = null;
@@ -167,7 +165,7 @@ public final class ConsumeState implements Closeable, IFile {
                 }
                 this.changed = false;
             } catch (IOException e) {
-                LOG.error("Fail to save consumer {} state", this.fileName, e);
+                LOG.error("Fail to save consumer {} state", this.file, e);
             }
         }
     }
@@ -182,6 +180,6 @@ public final class ConsumeState implements Closeable, IFile {
     
     @Override
     public String toString() {
-        return "@(" + fileNo + ',' + readPos + ')';
+        return "(" + file.getName() + '@' + fileNo + ',' + readPos + ')';
     }
 }

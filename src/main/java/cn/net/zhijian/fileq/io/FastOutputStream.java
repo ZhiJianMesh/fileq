@@ -16,6 +16,7 @@ limitations under the License.
 package cn.net.zhijian.fileq.io;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,15 +31,16 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  *
  */
 public final class FastOutputStream implements IOutputStream {
-    private int size = 0;
+    private final File file;
+    //writing is synchronized in Writer.write, read in multi-threads
+    private volatile int size = 0;
     private FileOutputStream fos;
     private BufferedOutputStream bos;
-    public final String name;
 
-    public FastOutputStream(String file) throws FileNotFoundException {
-        fos = new FileOutputStream(file);
-        bos = new BufferedOutputStream(fos);
-        name = file;
+    public FastOutputStream(File file) throws FileNotFoundException {
+        this.fos = new FileOutputStream(file);
+        this.bos = new BufferedOutputStream(fos);
+        this.file = file;
     }
 
     @Override
@@ -59,8 +61,8 @@ public final class FastOutputStream implements IOutputStream {
     }
     
     @Override
-    public String name() {
-        return name;
+    public File file() {
+        return file;
     }
 
     @Override

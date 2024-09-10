@@ -15,6 +15,7 @@ limitations under the License.
 */
 package cn.net.zhijian.fileq.io;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,16 +36,16 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  *
  */
 public final class SafeInputStream implements IInputStream {
-    public final String name;
+    public final File file;
     private FileInputStream fis;
     private FileChannel fc;
     private int readPos = 0;
-    private long size = 0;
+    private volatile long size = 0;
 
-    public SafeInputStream(String file) throws IOException {
-        fis = new FileInputStream(file);
-        fc = fis.getChannel();
-        name = file;
+    public SafeInputStream(File file) throws IOException {
+        this.fis = new FileInputStream(file);
+        this.fc = fis.getChannel();
+        this.file = file;
     }
 
     @Override
@@ -67,8 +68,8 @@ public final class SafeInputStream implements IInputStream {
     }
     
     @Override
-    public boolean hasMore() {
-        if(size > readPos) {
+    public boolean hasMore(int len) {
+        if(size - readPos >= len) {
             return true;
         }
 
@@ -76,7 +77,7 @@ public final class SafeInputStream implements IInputStream {
             //size() is a IO operation,
             //Here,need not a precise value, so use a cached one
             size = fc.size();
-            return size > readPos;
+            return size - readPos >= len;
             //return fis.available() > 0; //is writing
         } catch (IOException e) {
             return false;
@@ -97,7 +98,12 @@ public final class SafeInputStream implements IInputStream {
     }
     
     @Override
-    public String name() {
-        return name;
+    public File file() {
+        return file;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + file + ",pos " + readPos + ",size " + size + ')';
     }
 }

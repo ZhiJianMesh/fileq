@@ -144,9 +144,9 @@ final class Writer implements IWriter {
     private IOutputStream open(int fileNo) throws IOException {
         IOutputStream qFile;
         if(this.buffered) {
-            qFile = new FastOutputStream(queueFileName(fileNo));
+            qFile = new FastOutputStream(new File(queueFileName(fileNo)));
         } else {
-            qFile = new SafeOutputStream(queueFileName(fileNo));
+            qFile = new SafeOutputStream(new File(queueFileName(fileNo)));
         }
         byte[] content = new byte[FILE_HEAD_LEN];
         System.arraycopy(MAGIC, 0, content, 0, MAGIC.length);
@@ -255,7 +255,7 @@ final class Writer implements IWriter {
     public synchronized void close() throws IOException {
         if(qFile != null) {
             qFile.flush();
-            LOG.debug("Writer close {},size:{}", qFile.name(), qFile.size());
+            LOG.debug("Writer close `{}`,size:{}", qFile.file(), qFile.size());
             FileUtil.closeQuietly(qFile);
             qFile = null;
         }

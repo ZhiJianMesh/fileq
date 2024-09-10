@@ -16,6 +16,7 @@ limitations under the License.
 package cn.net.zhijian.fileq.intf;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 
 public interface IInputStream extends IFile, Closeable {
@@ -63,7 +64,7 @@ public interface IInputStream extends IFile, Closeable {
     /**
      * @return Whether the stream has more content or not
      */
-    boolean hasMore();
+    boolean hasMore(int len);
     
-    String name();
+    File file();
 }

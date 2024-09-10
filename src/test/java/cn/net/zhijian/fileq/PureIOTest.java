@@ -36,15 +36,15 @@ public class PureIOTest extends TestBase {
             }
         }
         String fn = FileUtil.addPath(dir, "test1.bin");
-        try(SafeOutputStream out = new SafeOutputStream(fn)) {
+        try(SafeOutputStream out = new SafeOutputStream(f)) {
             testOutput("SafeOutputStream", out);
         }
         
-        try(FastOutputStream out = new FastOutputStream(fn)) {
+        try(FastOutputStream out = new FastOutputStream(f)) {
             testOutput("FastOutputStream", out);
         }
 
-        try(SafeInputStream in = new SafeInputStream(fn)) {
+        try(SafeInputStream in = new SafeInputStream(f)) {
             testInput("SafeInputStream", in);
         }
         
