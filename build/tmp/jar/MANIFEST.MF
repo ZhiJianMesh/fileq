@@ -1,8 +1,0 @@
-Manifest-Version: 0.2.1
-Built-By: Lgy
-Build-Timestamp: 2024-09-06T11:57:52.076+0800
-Build-Revision: 0.2.5
-Created-By: Gradle 8.1.1
-Build-Jdk: 17.0.7 (GraalVM Community 17.0.7+7-jvmci-22.3-b18)
-Build-OS: Windows 11 amd64 10.0
-
