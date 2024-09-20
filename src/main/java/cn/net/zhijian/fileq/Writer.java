@@ -246,9 +246,8 @@ final class Writer implements IWriter {
             } catch (Exception e) {
                 throw new FQException(e);
             }
+            dispatcher.ready();
         }
-
-        dispatcher.ready();
     }
     
     @Override

@@ -62,6 +62,9 @@ public interface IInputStream extends IFile, Closeable {
     int readPos();
     
     /**
+     * Here serious problem happened when openNext file in IReader, 
+     * for written bytes is smaller than Integer.BYTES.
+     * If read it right now, IOException will be thrown.
      * @return Whether the stream has more content or not
      */
     boolean hasMore(int len);

@@ -33,7 +33,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
 public final class FastOutputStream implements IOutputStream {
     private final File file;
     //writing is synchronized in Writer.write, read in multi-threads
-    private volatile int size = 0;
+    private int size = 0;
     private FileOutputStream fos;
     private BufferedOutputStream bos;
 

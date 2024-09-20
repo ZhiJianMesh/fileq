@@ -71,10 +71,6 @@ final class Dispatcher extends Thread implements IDispatcher {
             this.autoConfirm = autoConfirm;
         }
 
-        public String name() {
-            return name;
-        }
-
         public int curFileNo() {
             return reader.curFileNo();
         }
@@ -125,8 +121,8 @@ final class Dispatcher extends Thread implements IDispatcher {
         
         void add(Consumer c) {
             for(Consumer ci : this.consumers) {
-                if(ci.name().equals(c.name())) {
-                    LOG.warn("Fail to add consumer {}, already exists", c.name());
+                if(ci.name.equals(c.name)) {
+                    LOG.warn("Fail to add consumer {} in queue {}, already exists", c.name, c.queueName);
                     return;
                 }
             }
@@ -144,7 +140,7 @@ final class Dispatcher extends Thread implements IDispatcher {
             Consumer[] consumers = new Consumer[this.consumers.length - 1];
 
             for(Consumer c : this.consumers) {
-                if(!c.name().equals(name)) {
+                if(!c.name.equals(name)) {
                     if(n == consumers.length - 1) {
                         LOG.warn("Consumer({}) not exists", name);
                         return;

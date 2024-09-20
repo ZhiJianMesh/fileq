@@ -35,7 +35,7 @@ public final class FastInputStream implements IInputStream {
     private FileInputStream fis;
     private BufferedInputStream bis;
     private int readPos = 0;
-    private volatile int available = 0;
+    private int available = 0;
 
     public FastInputStream(File file, int bufSize) throws IOException {
         this.fis = new FileInputStream(file);

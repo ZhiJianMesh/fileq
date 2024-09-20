@@ -111,7 +111,7 @@ public final class FileQueue implements IFile {
     public synchronized void addConsumer(String name, boolean sequential,
             InitPosition cp, boolean autoConfirm, IMessageHandler handler) throws FQException {
         if(writer.isClosed()) {
-            throw new FQException("invalid writer,it's closed");
+            throw new FQException("No valid writer,it's closed");
         }
         IReader reader;
         try {

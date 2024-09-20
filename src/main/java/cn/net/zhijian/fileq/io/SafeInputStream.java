@@ -40,7 +40,7 @@ public final class SafeInputStream implements IInputStream {
     private FileInputStream fis;
     private FileChannel fc;
     private int readPos = 0;
-    private volatile long size = 0;
+    private long size = 0;
 
     public SafeInputStream(File file) throws IOException {
         this.fis = new FileInputStream(file);
