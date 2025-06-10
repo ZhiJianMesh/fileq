@@ -133,7 +133,7 @@ final class Writer implements IWriter {
         }
 
         if (fileNum > 0) {
-            curFileNo++; // move to next one, no matter whether it is full or not
+            curFileNo++; // move to the next one, no matter whether it is full or not
         } else {
             minFileNo = 0;
             curFileNo = 0;
@@ -163,9 +163,9 @@ final class Writer implements IWriter {
         if (curNum < this.maxFileNum) {
             return;
         }
-
-        int uselessNum = dispatcher.minFileNo(queueName) - this.minFileNo;
-        //can't delete files which is still being consumed
+        int consumerMinFileNo = dispatcher.minFileNo(queueName);
+        int uselessNum = consumerMinFileNo - this.minFileNo;
+        //can't delete files which are still being consumed
         int rmvNum = Math.min(curNum - this.maxFileNum, uselessNum);
         if(rmvNum <= 0) {
             return;
@@ -258,6 +258,7 @@ final class Writer implements IWriter {
             FileUtil.closeQuietly(qFile);
             qFile = null;
         }
+        removeFiles(this.curFileNo);
     }
 
     @Override

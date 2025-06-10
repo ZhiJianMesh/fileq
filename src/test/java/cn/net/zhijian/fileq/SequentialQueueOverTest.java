@@ -33,6 +33,7 @@ public class SequentialQueueOverTest extends TestBase {
 	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
 	private static int pushMsgNum = 0;  
 	private static int msgLen = 0;
+	private static Random random = new Random();
     
     public static void main(String[] args) {
         LOG.debug("Start SequentialQueueOverTest");
@@ -65,11 +66,10 @@ public class SequentialQueueOverTest extends TestBase {
             
             //push messages in a standalone thread
             new Thread() {public void run() {
-                Random r = new Random();
                 for(int i = 0; i < MSG_NUM; i++) {
                     IFile.encodeInt(content, i, 0);
                     try {
-                        if(r.nextBoolean()) {
+                        if(random.nextBoolean()) {
                             Thread.sleep(0, 1000);
                         }
                         fq.push(content);

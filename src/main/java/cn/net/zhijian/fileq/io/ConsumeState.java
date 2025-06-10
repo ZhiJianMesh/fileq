@@ -44,6 +44,8 @@ public final class ConsumeState implements Closeable, IFile {
     private static final int MAX_SIZE = 100 * 1024 * Integer.BYTES * 2 + FILE_HEAD_LEN;
 
     private final File file;
+    //after updated maxBufferedTimes times, save read position to file
+	//if it is set too large, there will be rishs about re-consuming
     private final int maxBufferedTimes;
     private final byte[] buf = new byte[Integer.BYTES * 2];
     private IOutputStream stateFile;

@@ -25,7 +25,7 @@ import java.nio.channels.FileChannel;
 import cn.net.zhijian.fileq.intf.IOutputStream;
 
 /**
- * Save all messages into a file at once.
+ * Save all messages into queue file at once.
  * 1)BufferedOutputStream has delay when writing,
  *   If don't care about it, set bufferedPush mode to use it;
  * 2)FileChannel is fast, easy to use, and more compatible.

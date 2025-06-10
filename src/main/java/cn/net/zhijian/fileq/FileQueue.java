@@ -166,8 +166,11 @@ public final class FileQueue implements IFile {
             return;
         }
         LOG.info("Close the queue {}", writer.queueName());
-        dispatcher.rmvConsumers(writer.queueName());
+        //Should be ahead rmvConsumers 
+        //because it will remove useless queue files,
+        //To get min_consumer_file depends on consumers
         writer.close();
+        dispatcher.rmvConsumers(writer.queueName());
     }
     
     public static class Builder {
