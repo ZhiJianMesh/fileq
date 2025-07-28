@@ -26,6 +26,7 @@ import cn.net.zhijian.fileq.intf.IMessage;
 public final class SequentialMessage implements IMessage {
     private int len;
     private byte[] msg;
+    private boolean passed;
     
     public SequentialMessage(int len) {
         this.len = len;
@@ -48,5 +49,15 @@ public final class SequentialMessage implements IMessage {
             return;
         }
         msg = new byte[len];
+    }
+
+    public void passed(boolean passed) {
+        this.passed = passed;
+    }
+    
+    @Override
+    public boolean isCorrect() {
+        // TODO Auto-generated method stub
+        return passed;
     }
 }

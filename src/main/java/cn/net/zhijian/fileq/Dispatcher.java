@@ -33,8 +33,9 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * Receive writer's notification, read a message,
  * then send it to consumers' thread pool.
  * There is no more processing in it, only distribute.
- * In Dispatcher,one thread handles all queues' read-action.
- * So, all IReader all called in one thread, needn't synchronize
+ * File sequential reading is fast enough,
+ * so in Dispatcher,one thread handles all queues' read-action.
+ * That's to say, IReaders are all called in one thread, needn't synchronize
  * @author Lgy
  *
  */
@@ -45,8 +46,8 @@ final class Dispatcher extends Thread implements IDispatcher {
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
-    private long totalMsgNum = 0L;
-    private boolean goon = true; //continue to run or not
+    private volatile long totalMsgNum = 0L;
+    private volatile boolean goon = true; //continue to run or not
     private volatile boolean tracing = true; 
 
     private static class Consumer implements Closeable {
@@ -285,6 +286,10 @@ final class Dispatcher extends Thread implements IDispatcher {
         return minNo == Integer.MAX_VALUE ? 0 : minNo;
     }
 
+    /**
+     * How many messages got from queue.
+     * It will be more than message number when some messages handled failed.
+     */
     @Override
     public long handledMsgNum() {
         return totalMsgNum;

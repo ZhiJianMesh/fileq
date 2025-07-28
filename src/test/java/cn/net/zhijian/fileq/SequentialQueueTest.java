@@ -117,7 +117,7 @@ public class SequentialQueueTest extends TestBase {
             preNo = no;
             pollMsgNum.getAndIncrement();
             n++;
-            if((n & 0xfff) == 0) {
+            if((n & 0x1fff) == 0) {
                 LOG.debug("[{}]msg num:{},cur no:{}", reader.name(), n, no);
             }
             reader.confirm(true);

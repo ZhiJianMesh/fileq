@@ -77,14 +77,14 @@ class ConcurrentReader implements IReader {
         init(pos);
     }
     
-    private void init(InitPosition pos) throws IOException {
+    private void init(InitPosition initPos) throws IOException {
         int curFileNo;
         int readPos;
         
-        if(pos == InitPosition.END) {
+        if(initPos == InitPosition.END) {
             curFileNo = this.writer.curFileNo();
             readPos = this.writer.size();
-        } else if(pos == InitPosition.HEAD){
+        } else if(initPos == InitPosition.HEAD){
             curFileNo = this.writer.minFileNo();
             readPos = FILE_HEAD_LEN;
         } else {
@@ -107,14 +107,10 @@ class ConcurrentReader implements IReader {
         }
        
         LOG.debug("open `{}`,readPos:{}", writer.queueFileName(curFileNo), readPos);
-        qFile = open(curFileNo);
-        if(readPos > FILE_HEAD_LEN && qFile != null) {
-            //first time read, skip the content that has been read
-            qFile.skip(readPos - FILE_HEAD_LEN);
-        }
+        qFile = open(curFileNo, readPos);
     }
 
-    private IInputStream open(int fileNo) throws IOException {
+    private IInputStream open(int fileNo, int readPos) throws IOException {
         String fn = writer.queueFileName(fileNo);
         File f = new File(fn);
         if(!f.exists()) {
@@ -147,6 +143,12 @@ class ConcurrentReader implements IReader {
                     + ",ver=" + ver + ",no=" + no
                     + ",magic=" + new String(head, 0, MAGIC.length));
         }
+        
+        if(readPos > FILE_HEAD_LEN) {
+            //skip the content that has been read
+            qFile.skip(readPos - FILE_HEAD_LEN);
+        }
+        
         this.consumeState.save(fileNo, qFile.readPos(), true);
         
         return qFile;
@@ -159,7 +161,7 @@ class ConcurrentReader implements IReader {
 
         do {
             try {
-                if((f = open(fileNo)) != null
+                if((f = open(fileNo, 0)) != null
                    && f.hasMore(Integer.BYTES)) { //if only file head,ignore it
                     return f;
                 }
@@ -173,8 +175,7 @@ class ConcurrentReader implements IReader {
         return null;
     }
     
-    @Override
-    public IMessage read() { //run in a single thread
+    private IMessage innerRead() { //run in a single thread
         int curFileNo = this.consumeState.fileNo();
         if(curFileNo == writer.curFileNo()) {//read the last file
             if(qFile == null) {
@@ -183,17 +184,17 @@ class ConcurrentReader implements IReader {
                  * So reopen it
                  */
                 try {
-                    qFile = open(curFileNo);
+                    qFile = open(curFileNo, 0);
                 } catch (IOException e) {
                     LOG.error("Fail to open file {}", writer.curFileNo(), e);
                 }
+                if(qFile == null) {
+                    return null;
+                }
             }
             
-            if(qFile == null) {
-                return null;
-            }
             if(!qFile.hasMore(Integer.BYTES)) {
-                this.consumeState.save(qFile.readPos(), false);//save consume pos when idle
+                this.consumeState.save(qFile.readPos(), true);//save consume pos when idle
                 return null; //no new message, waiting
             }
         } else if(qFile == null || !qFile.hasMore(Integer.BYTES)) {
@@ -222,14 +223,14 @@ class ConcurrentReader implements IReader {
                 qFile.read(content, 0, len);
                 if(hashCode != IFile.hashCode(content, 0, len)) {
                     LOG.warn("Invalid hash value at {} in {}", qFile.readPos() - len - 4, curFileName());
-                    return null;
+                    return generateMessage(len, content, false);
                 }
             } else {
                 qFile.read(content, 0, len);
             }
             
             //record read position in confirm method,not here
-            return generateMessage(len, content);
+            return generateMessage(len, content, true);
         } catch (IOException e) {
             LOG.error("Fail to read file `{}`\nstate:{},writer:({},no-{},size-{})\nreader:{}",
                     curFileName(), this.consumeState,
@@ -238,6 +239,35 @@ class ConcurrentReader implements IReader {
         }
 
         return null;
+    }
+
+    @Override
+    public IMessage read() { //run in a single thread
+        return innerRead();
+    }
+    
+    /**
+     * Reopen it, and continue the reading
+     * FastInputStream, sometimes, it will read unexpected content
+     * If in concurrent mode, queue will not know whether it's OK or NOK 
+     * @return message
+     */
+    protected IMessage reRead() { 
+        FileUtil.closeQuietly(qFile);
+        qFile = null;
+        int fileNo = this.consumeState.fileNo();
+        int readPos = this.consumeState.readPos();
+        LOG.info("reRead,queue:{},fileNo:{},readPos:{}", writer.queueName(), fileNo, readPos);
+        try {
+            qFile = open(fileNo, readPos);
+        } catch (IOException e) {
+            LOG.error("Fail to open file {}", writer.curFileNo(), e);
+        }
+    
+        if(qFile == null) {
+            return null;
+        }
+        return innerRead(); //will call sub-class' read()
     }
     
     /**
@@ -266,11 +296,13 @@ class ConcurrentReader implements IReader {
 
     /**
      * Generate a message with the content from file, and send it to handlers
+     * @param len content length
      * @param content Buffer to receive the message
+     * @param passed passed the hash code checking or note
      * @return message
      */
-    protected IMessage generateMessage(int len, byte[] content) {
-        return new ConcurrentMessage(len, content);
+    protected IMessage generateMessage(int len, byte[] content, boolean passed) {
+        return new ConcurrentMessage(len, content, passed);
     }
 
     @Override

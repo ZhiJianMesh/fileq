@@ -49,8 +49,8 @@ final class Writer implements IWriter {
     private final boolean buffered;
     private final List<File> failToDelFiles = new ArrayList<>();
 
-    private int curFileNo = 0;
-    private int minFileNo = Integer.MAX_VALUE;
+    private volatile int curFileNo = 0;
+    private volatile int minFileNo = Integer.MAX_VALUE;
     private IOutputStream qFile;
     private byte[] msgBuf = new byte[DEFAULT_BUF_LEN];
 
@@ -133,7 +133,8 @@ final class Writer implements IWriter {
         }
 
         if (fileNum > 0) {
-            curFileNo++; // move to the next one, no matter whether it is full or not
+            int fn = curFileNo + 1;//correct spotbugs report,volatile var can't depend on itself in multi-threads
+            curFileNo = fn;// move to the next one, no matter whether it is full or not
         } else {
             minFileNo = 0;
             curFileNo = 0;
@@ -198,15 +199,17 @@ final class Writer implements IWriter {
                 failToDelFiles.add(f);
             }
         }
-        this.minFileNo += rmvNum;
+        int fn = this.minFileNo; //revise spotbugs report,volatile can't depend on itself in multi-threads
+        this.minFileNo = fn + rmvNum;
     }
 
     private void openNext() throws IOException {
         FileUtil.closeQuietly(qFile);
         qFile = null;
-        this.curFileNo++;
-        removeFiles(this.curFileNo);
-        qFile = open(this.curFileNo);
+        int fn = this.curFileNo + 1;
+        this.curFileNo = fn; //correct spotbugs report
+        removeFiles(fn);
+        qFile = open(fn);
     }
 
     @Override

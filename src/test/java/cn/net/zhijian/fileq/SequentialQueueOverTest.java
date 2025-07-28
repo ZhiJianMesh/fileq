@@ -47,8 +47,8 @@ public class SequentialQueueOverTest extends TestBase {
                 .dispatcher(dispatcher)
                 .maxFileNum(3) //set small num and size to make it easily be overed
                 .maxFileSize(1 * 1024 * 1024)
-                .bufferedPush(true)
-                .bufferedPoll(true);
+                .bufferedPush(false)
+                .bufferedPoll(false);
         dispatcher.start();
         
         try {

@@ -26,10 +26,12 @@ import cn.net.zhijian.fileq.intf.IMessage;
 public final class ConcurrentMessage implements IMessage {
     private final byte[] msg;
     private final int len;
+    private final boolean passed;
 
-    public ConcurrentMessage(int len, byte[] msg) {
+    public ConcurrentMessage(int len, byte[] msg, boolean passed) {
         this.msg = msg;
         this.len = len;
+        this.passed = passed;
     }
     
     @Override
@@ -40,5 +42,10 @@ public final class ConcurrentMessage implements IMessage {
     @Override
     public int len() {
         return len;
+    }
+
+    @Override
+    public boolean isCorrect() {
+        return passed;
     }
 }

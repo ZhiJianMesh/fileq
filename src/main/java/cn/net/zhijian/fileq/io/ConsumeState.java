@@ -50,10 +50,10 @@ public final class ConsumeState implements Closeable, IFile {
     private final byte[] buf = new byte[Integer.BYTES * 2];
     private IOutputStream stateFile;
     private long recordTime = System.currentTimeMillis(); //save file time
-    private int fileNo = 0;
-    private int readPos = FILE_HEAD_LEN;
-    private int bufferedTimes = 0;
-    private boolean changed = false; //identify whether state changed or not
+    private volatile int fileNo = 0;
+    private volatile int readPos = FILE_HEAD_LEN;
+    private volatile int bufferedTimes = 0;
+    private volatile boolean changed = false; //identify whether state changed or not
 
     public ConsumeState(File file, int bufferedTimes) throws IOException {
         this.file = file;
@@ -120,7 +120,8 @@ public final class ConsumeState implements Closeable, IFile {
     public void save(int fileNo, int readPos, boolean force) {
         this.changed = this.changed || readPos != this.readPos || fileNo != this.fileNo;
         if(this.changed) {
-            this.bufferedTimes++;
+            int bt = this.bufferedTimes + 1;
+            this.bufferedTimes = bt; //correct spotbugs report
             this.fileNo = fileNo;
             this.readPos = readPos;
         }
@@ -130,7 +131,8 @@ public final class ConsumeState implements Closeable, IFile {
     public void save(int readPos, boolean force) {
         this.changed = this.changed || readPos != this.readPos;
         if(this.changed) {
-            this.bufferedTimes++;
+            int bt = this.bufferedTimes + 1;
+            this.bufferedTimes = bt;
             this.readPos = readPos;
         }
         save(force || this.bufferedTimes >= maxBufferedTimes);

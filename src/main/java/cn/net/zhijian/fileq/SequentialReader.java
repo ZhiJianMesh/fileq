@@ -31,7 +31,8 @@ import cn.net.zhijian.fileq.intf.IWriter;
  */
 final class SequentialReader extends ConcurrentReader {
     private static final int MIN_RETRY_INTERVAL = 500;
-    private static final int MAX_RETRY_INTERVAL = 10 * 1000;
+    private static final int MAX_RETRY_INTERVAL = (MIN_RETRY_INTERVAL << 5);
+    private static final int MAX_FAILED_TIMES = 10;
     
     //The state of the queue's consumer
     private enum MsgState {
@@ -41,6 +42,7 @@ final class SequentialReader extends ConcurrentReader {
     }
     
     private int retryInterval = MIN_RETRY_INTERVAL; //ms
+    private int failedTimes = 0;
     private long retriedAt; //ms, fore retry time
     private final IDispatcher dispatcher;
 
@@ -64,7 +66,7 @@ final class SequentialReader extends ConcurrentReader {
     }
 
     /**
-     * read a message from queue 
+     * read a message from queue in a single thread
      */
     @Override
     public IMessage read() {
@@ -80,7 +82,15 @@ final class SequentialReader extends ConcurrentReader {
                     retryInterval <<= 1; //double retry time
                 }
                 retriedAt = cur;
-                msg = this.msg; //return old message again
+                if(failedTimes >= MAX_FAILED_TIMES) {
+                    //when using FastInputStream in high concurrency scenarios,
+                    //sometimes get unexpected content.
+                    //In ConcurrentRead, there's no chance to undo the mistake when it happen
+                    msg = super.reRead();
+                } else {
+                    msg = this.msg; //return old message again
+                }
+                state = MsgState.WAITCONFIRM;
             }
         } else {
             retryInterval = MIN_RETRY_INTERVAL;
@@ -100,7 +110,8 @@ final class SequentialReader extends ConcurrentReader {
     }
     
     @Override
-    protected IMessage generateMessage(int len, byte[] content) {
+    protected IMessage generateMessage(int len, byte[] content, boolean passed) {
+        msg.passed(passed);
         return msg;
     }
     
@@ -108,11 +119,13 @@ final class SequentialReader extends ConcurrentReader {
     public void confirm(boolean ok) {
         if(ok) {
             state = MsgState.IDLE;
+            failedTimes = 0; //blocked at the failed one, so directly set to 0 when ok
             if(qFile != null) {
                 this.consumeState.save(qFile.readPos(), false);
             }
         } else{
             state = MsgState.FAILED;
+            failedTimes++;
         }
         /*
          * In sequential reader, one message confirmed,

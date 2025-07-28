@@ -31,5 +31,11 @@ public interface IMessage {
      * @return length Real length of message body
      */
     int len();
-    
+    /**
+     * Passed the hash code checking or not if hash-code enabled when push it.
+     * Correct and incorrect messages all will be delivered to consumers.
+     * Consumers need to decide how to handle it.
+     * @return true if passed
+     */
+    boolean isCorrect();   
 }

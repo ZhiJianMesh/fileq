@@ -25,6 +25,8 @@ import cn.net.zhijian.fileq.intf.IInputStream;
 /**
  * Read message from queue-files use buffered input stream.
  * It can obviously improve the performance of reading.
+ * But it will import some strange problems,
+ * such as, get some unexpected content in high concurrent scenarios.
  * @author liguoyong77@sina.com
  *
  */
