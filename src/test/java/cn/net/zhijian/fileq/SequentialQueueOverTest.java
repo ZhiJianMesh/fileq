@@ -29,10 +29,11 @@ public class SequentialQueueOverTest extends TestBase {
     private static Logger LOG = LogUtil.getInstance();
 
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long handleTime = System.currentTimeMillis();
+	private static volatile long handleTime = System.currentTimeMillis();
 	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
-	private static int pushMsgNum = 0;  
-	private static int msgLen = 0;
+	private static AtomicInteger pushMsgNum = new AtomicInteger(0);
+    private static final byte[] msg = "abcdefghijklmnopqrstuvwxyz1234567890".getBytes();
+    private static final int msgLen = msg.length + Integer.BYTES;
 	private static Random random = new Random();
     
     public static void main(String[] args) {
@@ -58,13 +59,12 @@ public class SequentialQueueOverTest extends TestBase {
                 fq.addConsumer(name, true, false, new MessageHandler());
             }
             
-            byte[] s = "abcdefghijklmnopqrstuvwxyz1234567890".getBytes();
-            msgLen = s.length + Integer.BYTES;
+
             byte[] content = new byte[msgLen];
-            System.arraycopy(s, 0, content, Integer.BYTES, s.length);
+            System.arraycopy(msg, 0, content, Integer.BYTES, msg.length);
             start = System.currentTimeMillis();
             
-            //push messages in a standalone thread
+            //push messages into a stand alone thread
             new Thread() {public void run() {
                 for(int i = 0; i < MSG_NUM; i++) {
                     IFile.encodeInt(content, i, 0);
@@ -76,11 +76,11 @@ public class SequentialQueueOverTest extends TestBase {
                     } catch (Exception e) {
                         LOG.error("Fail to push msg", e);
                     }
-                    pushMsgNum++;
+                    pushMsgNum.incrementAndGet();
                 }
                 long end = System.currentTimeMillis();
                 long interval = end > start ? end - start : 1;
-                LOG.debug("Push num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum) / interval, interval);
+                LOG.debug("Push num:{},speed:{}/s,interval:{}ms", pushMsgNum, (1000L * pushMsgNum.get()) / interval, interval);
             }}.start();
             
             checkOver.schedule(new TimerTask() {

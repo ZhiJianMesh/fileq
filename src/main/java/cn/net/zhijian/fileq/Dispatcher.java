@@ -55,7 +55,7 @@ final class Dispatcher extends Thread implements IDispatcher {
         private final IMessageHandler handler;
         private final String queueName;
         private final String name;
-        private boolean paused = false;
+        private volatile boolean paused = false;
         
         /*
          * auto confirmed, 

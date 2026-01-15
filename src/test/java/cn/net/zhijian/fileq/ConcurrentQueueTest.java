@@ -32,8 +32,8 @@ public class ConcurrentQueueTest extends TestBase {
     private static final int WAIT_TIME = 3000;
     private static Logger LOG = LogUtil.getInstance();
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long lastHandleTime;
-    private static long firstHandleTime = -1;
+	private static volatile long lastHandleTime;
+    private static volatile long firstHandleTime = -1;
     
     public static void main(String[] args) {
         LOG.debug("Start test");

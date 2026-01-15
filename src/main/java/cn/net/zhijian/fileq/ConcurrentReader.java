@@ -267,7 +267,7 @@ class ConcurrentReader implements IReader {
         if(qFile == null) {
             return null;
         }
-        return innerRead(); //will call sub-class' read()
+        return innerRead();
     }
     
     /**

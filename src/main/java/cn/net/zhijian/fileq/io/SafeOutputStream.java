@@ -84,10 +84,8 @@ public final class SafeOutputStream implements IOutputStream {
         }
     }
 
-    /**
-     * Needn't flush,all are saved to disk right now
-     */
     @Override
-    public void flush() {
+    public void flush() throws IOException {
+		fc.force(false); //don't care file's meta data
     }
 }

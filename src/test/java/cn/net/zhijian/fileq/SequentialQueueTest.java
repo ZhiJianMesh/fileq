@@ -28,7 +28,7 @@ public class SequentialQueueTest extends TestBase {
     private static Logger LOG = LogUtil.getInstance();
 
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long handleTime = System.currentTimeMillis();
+	private static volatile long handleTime = System.currentTimeMillis();
 	private static AtomicInteger pollMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {

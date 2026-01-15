@@ -29,8 +29,8 @@ public class MixedQueueTest extends TestBase {
     private static Logger LOG = LogUtil.getInstance();
 
     private static CountDownLatch lock = new CountDownLatch(1);
-	private static long lastHandleTime = System.currentTimeMillis();
-    private static long firstHandleTime = -1;
+	private static volatile long lastHandleTime = System.currentTimeMillis();
+    private static volatile long firstHandleTime = -1;
 	private static AtomicInteger handledMsgNum = new AtomicInteger(0);
     
     public static void main(String[] args) {
