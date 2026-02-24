@@ -180,12 +180,10 @@ final class Dispatcher extends Thread implements IDispatcher {
         LOG.info("Dispatcher started");
         int msgNum;
         int count;
-        Queue queue;
 
         while(goon) {
             msgNum = 0;
-            for(Map.Entry<String, Queue> q : queues.entrySet()) {
-                queue = q.getValue();
+            for(Queue queue : queues.values()) {
                 count = 0;
                 for(Consumer c : queue.consumers) {
                     if(c.paused()) {
@@ -223,8 +221,7 @@ final class Dispatcher extends Thread implements IDispatcher {
                 LockSupport.parkNanos(WAIT_TIME);
                 tracing = true;
 
-                for(Map.Entry<String, Queue> q : queues.entrySet()) {
-                    queue = q.getValue();
+                for(Queue queue : queues.values()) {
                     for(Consumer c : queue.consumers) {
                         //flush buffered data to disk if in bufferedPush mode  
                         c.hasten();
