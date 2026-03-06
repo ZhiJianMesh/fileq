@@ -42,12 +42,16 @@ import cn.net.zhijian.fileq.util.LogUtil;
 final class Dispatcher extends Thread implements IDispatcher {
     private static final Logger LOG = LogUtil.getInstance();
     private static final long WAIT_TIME = 1000L * 1000 * 1000; //1 second
+    private static final int STOPPED = 0;
+    private static final int RUNNING = 1;
+    private static final int PAUSED = 2;
     
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
     private volatile long totalMsgNum = 0L;
-    private volatile boolean goon = true; //continue to run or not
+    //0 stopped,1:running,2:paused
+    private volatile int goon = RUNNING;
     private volatile boolean tracing = true; 
 
     private static class Consumer implements Closeable {
@@ -181,7 +185,11 @@ final class Dispatcher extends Thread implements IDispatcher {
         int msgNum;
         int count;
 
-        while(goon) {
+        while(goon != STOPPED) {
+        	if(goon == PAUSED) { //all tasks paused, not stopped
+                LockSupport.parkNanos(WAIT_TIME);
+                continue;
+        	}
             msgNum = 0;
             for(Queue queue : queues.values()) {
                 count = 0;
@@ -242,7 +250,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     
     @Override
     public void shutdown() {
-        goon = false;
+        goon = STOPPED;
         LockSupport.unpark(this);
     }
 
@@ -321,4 +329,22 @@ final class Dispatcher extends Thread implements IDispatcher {
         }
         queue.removeAll();
     }
+
+	@Override
+	public void pauseAll() {
+		if(goon == RUNNING) {
+			goon = PAUSED;
+		} else {
+			LOG.warn("Not in running state");
+		}
+	}
+
+	@Override
+	public void continueAll() {
+		if(goon == PAUSED) {
+			goon = RUNNING;
+		} else {
+			LOG.warn("Not in paused state");
+		}
+	}
 }

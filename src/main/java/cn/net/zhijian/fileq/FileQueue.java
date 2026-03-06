@@ -153,6 +153,14 @@ public final class FileQueue implements IFile {
         dispatcher.continueConsumer(this.name, consumer);
     }
     
+    public void pauseAllConsumers() {
+        dispatcher.pauseAll();
+    }
+    
+    public void continueAllConsumers() {
+        dispatcher.continueAll();
+    }
+    
     /**
      * Remove a consumer
      * @param name Consumer name

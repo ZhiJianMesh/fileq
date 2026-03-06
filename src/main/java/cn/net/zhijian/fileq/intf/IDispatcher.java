@@ -55,6 +55,15 @@ public interface IDispatcher {
      * Stop the thread, and close all consumers
      */
     void shutdown();
+    /**
+     * pause all consumers
+     */
+    void pauseAll();
+    /**
+     * continue all consumers
+     */
+    void continueAll();
+    
     //pause a consumer
     void pauseConsumer(String queue, String consumer);
     //unpause a consumer
