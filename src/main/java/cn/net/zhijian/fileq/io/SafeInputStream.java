@@ -32,7 +32,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  *   But it has latency to save data to disk,and it's very hard to close.
  *   In android, there are compatible problems.
  *   So give it up.
- * @author flyinmind@csdn.net.cn
+ * @author flyinmind of csdn.net
  *
  */
 public final class SafeInputStream implements IInputStream {
