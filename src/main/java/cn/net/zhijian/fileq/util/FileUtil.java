@@ -19,7 +19,7 @@ import java.io.File;
 
 /**
  * File utils
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class FileUtil {

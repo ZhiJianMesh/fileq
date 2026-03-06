@@ -34,7 +34,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
  * Write messages to files
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 final class Writer implements IWriter {

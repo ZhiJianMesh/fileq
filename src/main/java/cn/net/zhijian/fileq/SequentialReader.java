@@ -26,7 +26,7 @@ import cn.net.zhijian.fileq.intf.IWriter;
  * Sequential consumer, consume one by one.
  * If consume is not confirmed, 
  * just return the old message until it was confirmed 
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 final class SequentialReader extends ConcurrentReader {

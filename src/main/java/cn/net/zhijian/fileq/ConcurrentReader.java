@@ -41,7 +41,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * <p>
  * Queues' read actions are all operated in one thread.
  * 
- * @author Lgy
+ * @author flyinmind of csdn.net
  */
 class ConcurrentReader implements IReader {
     private static final Logger LOG = LogUtil.getInstance();
@@ -175,7 +175,8 @@ class ConcurrentReader implements IReader {
         return null;
     }
     
-    private IMessage innerRead() { //run in a single thread
+    @Override
+    public IMessage read() { //run in a single dispatcher thread
         int curFileNo = this.consumeState.fileNo();
         if(curFileNo == writer.curFileNo()) {//read the last file
             if(qFile == null) {
@@ -240,11 +241,6 @@ class ConcurrentReader implements IReader {
 
         return null;
     }
-
-    @Override
-    public IMessage read() { //run in a single thread
-        return innerRead();
-    }
     
     /**
      * Reopen it, and continue the reading
@@ -267,7 +263,7 @@ class ConcurrentReader implements IReader {
         if(qFile == null) {
             return null;
         }
-        return innerRead();
+        return read();
     }
     
     /**

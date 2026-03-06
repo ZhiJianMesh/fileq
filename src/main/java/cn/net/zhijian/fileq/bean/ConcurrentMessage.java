@@ -20,7 +20,7 @@ import cn.net.zhijian.fileq.intf.IMessage;
 /**
  * Concurrent message,
  * Processing order is not guaranteed
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class ConcurrentMessage implements IMessage {

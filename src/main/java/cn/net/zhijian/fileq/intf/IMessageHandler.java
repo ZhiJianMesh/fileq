@@ -17,7 +17,7 @@ package cn.net.zhijian.fileq.intf;
 
 /**
  * Message handler
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public interface IMessageHandler {

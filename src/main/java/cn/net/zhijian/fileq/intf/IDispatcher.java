@@ -17,7 +17,7 @@ package cn.net.zhijian.fileq.intf;
 
 /**
  * Queue messages' dispatcher
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public interface IDispatcher {
@@ -47,7 +47,12 @@ public interface IDispatcher {
      */
     void addConsumer(boolean autoConfirm, IReader reader, IMessageHandler handler);
 
-    void rmvConsumer(String queueName, String name);
+    /**
+     * Remove a consumer from the queue
+     * @param queueName name of the queue
+     * @param consumerName name of the consumer
+     */
+    void rmvConsumer(String queueName, String consumerName);
     
     void rmvConsumers(String queueName);
     

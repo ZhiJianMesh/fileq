@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Log utils, base on slf4j
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class LogUtil {

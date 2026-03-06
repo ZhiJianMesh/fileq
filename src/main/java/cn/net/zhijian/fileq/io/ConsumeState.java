@@ -35,7 +35,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * So you should set 'bufferedTimes' with a proper value, for example 1000.
  * It means that write to disk after 1000 times pool.
  * When crashing, it will cause to re-read max 1000 messages after recovering.
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class ConsumeState implements Closeable, IFile {

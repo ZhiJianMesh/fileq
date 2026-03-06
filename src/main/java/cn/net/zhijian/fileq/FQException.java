@@ -17,7 +17,7 @@ package cn.net.zhijian.fileq;
 
 /**
  * FileQueue Exception
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class FQException extends Exception {

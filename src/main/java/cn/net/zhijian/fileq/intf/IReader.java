@@ -21,7 +21,7 @@ import java.io.Closeable;
  * All read actions are handled in one thread.
  * In Dispatcher, only one thread, read all queues' files,
  * then distribute them to a thread pool to handle.
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public interface IReader extends IFile, Closeable {

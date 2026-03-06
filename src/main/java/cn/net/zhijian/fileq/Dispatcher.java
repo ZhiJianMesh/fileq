@@ -36,7 +36,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * File sequential reading is fast enough,
  * so in Dispatcher,one thread handles all queues' read-action.
  * That's to say, IReaders are all called in one thread, needn't synchronize
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 final class Dispatcher extends Thread implements IDispatcher {
@@ -80,6 +80,7 @@ final class Dispatcher extends Thread implements IDispatcher {
             return reader.curFileNo();
         }
 
+        @Override
         public void close() {
             try {
                 this.reader.close();
@@ -107,7 +108,7 @@ final class Dispatcher extends Thread implements IDispatcher {
             try {
                 return reader.read();
             } catch(Exception e) { //catch all exceptions to avoid thread crashes
-                LOG.error("Read msg from queue({}) in {}", name, queueName, e);
+                LOG.error("Fail to read msg from queue({}) in {}", name, queueName, e);
             }
             return null;
         }
@@ -122,7 +123,8 @@ final class Dispatcher extends Thread implements IDispatcher {
     }
     
     private static class Queue {
-        private Consumer[] consumers = new Consumer[] {};
+        //Only one element at most of time, so use an array not a list
+        private volatile Consumer[] consumers = new Consumer[] {};
         
         void add(Consumer c) {
             for(Consumer ci : this.consumers) {
@@ -142,6 +144,7 @@ final class Dispatcher extends Thread implements IDispatcher {
                 return;
             }
             int n = 0;
+            Consumer removeOne = null;
             Consumer[] consumers = new Consumer[this.consumers.length - 1];
 
             for(Consumer c : this.consumers) {
@@ -152,18 +155,25 @@ final class Dispatcher extends Thread implements IDispatcher {
                     }
                     consumers[n++] = c;
                 } else {
-                    c.close();
+                	removeOne = c;
                 }
             }
             
             this.consumers = consumers;
+            if(removeOne != null) {
+            	//If close before this.consumers updated,
+            	//it will cause null-point-exception when Dispatcher.run call Consumer.read.
+            	//Because Consumer.reader was closed but it is still in this.consumers.
+            	removeOne.close();
+            }
         }
         
         void removeAll() {
-            for(Consumer c : this.consumers) {
+        	Consumer[] oldList = this.consumers;
+        	this.consumers = new Consumer[] {}; //update as soon as possible, then close them one by one
+            for(Consumer c : oldList) {
                 c.close();
             }
-            this.consumers = new Consumer[] {};
         }
         
         void setPause(String name, boolean v) {
@@ -311,13 +321,13 @@ final class Dispatcher extends Thread implements IDispatcher {
     }
     
     @Override
-    public void rmvConsumer(final String queueName, final String name) {
+    public void rmvConsumer(final String queueName, final String consumerName) {
         Queue queue = queues.get(queueName);
         if(queue == null) {
             LOG.info("Queue({}) not exists", queueName);
             return;
         }
-        queue.remove(name);
+        queue.remove(consumerName);
     }
     
     @Override

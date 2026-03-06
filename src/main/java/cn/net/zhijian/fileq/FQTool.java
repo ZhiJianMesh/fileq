@@ -16,9 +16,9 @@ limitations under the License.
 package cn.net.zhijian.fileq;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -27,14 +27,14 @@ import cn.net.zhijian.fileq.util.LogUtil;
 
 /**
  * FileQueue tool class
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class FQTool {
     private static final Logger LOG = LogUtil.getInstance();
     
     private static Dispatcher dispatcher = null;
-    private static final List<FileQueue> queues = Collections.synchronizedList(new ArrayList<>());
+    private static final Map<String, FileQueue> queues = new ConcurrentHashMap<>();
     
     /**
      * 
@@ -71,37 +71,25 @@ public final class FQTool {
 
         builder.dispatcher(dispatcher);
         fq = builder.build();
-        queues.add(fq);
+        queues.put(fq.name, fq);
         
         return fq;
     }
 
     public static FileQueue get(String name) {
-        for(FileQueue fq : queues) {
-            if(fq.name.equals(name)) {
-                return fq;
-            }
-        }
-        return null;
+        return queues.get(name);
     }
 
     public static void remove(String name) {
-        int idx = 0;
-
-        for(FileQueue fq : queues) {
-            if(!fq.name.equals(name)) {
-                idx++;
-                continue;
-            }
-
+    	FileQueue fq = queues.get(name);
+    	if(fq != null) {
             try {
                 fq.close();
             } catch (IOException e) {
                 LOG.error("Fail to close queue {}", fq.name, e);
             }
-            queues.remove(idx);
-            break;
-        }
+            queues.remove(name);
+    	}
     }
 
     /**
@@ -112,11 +100,12 @@ public final class FQTool {
         if(!started()) {
             return;
         }
+        Collection<FileQueue> ff = queues.values();
+        queues.clear(); //clear first then close queues one by one
+        dispatcher.shutdown();
         
-        for(FileQueue fq : queues) {
+        for(FileQueue fq : ff) {
             fq.close();
         }
-        queues.clear();
-        dispatcher.shutdown();
     }
 }

@@ -30,7 +30,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
 
 /**
  * main class
- * @author flyinmind of csdn.net
+ * @author flyinmind of csdn.net flyinmind of csdn.net
  *
  */
 public final class FileQueue implements IFile {

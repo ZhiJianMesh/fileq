@@ -27,7 +27,7 @@ import cn.net.zhijian.fileq.intf.IInputStream;
  * It can obviously improve the performance of reading.
  * But it will import some strange problems,
  * such as, get some unexpected content in high concurrent scenarios.
- * @author flyinmind of csdn.net
+ * @author flyinmind of csdn.net flyinmind of csdn.net
  *
  */
 public final class FastInputStream implements IInputStream {

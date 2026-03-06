@@ -20,7 +20,7 @@ import cn.net.zhijian.fileq.FQException;
 
 /**
  * Queue file writer
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public interface IWriter extends IFile, Closeable {

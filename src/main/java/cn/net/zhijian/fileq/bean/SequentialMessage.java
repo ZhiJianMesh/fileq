@@ -20,7 +20,7 @@ import cn.net.zhijian.fileq.intf.IMessage;
 /**
  * Sequence message
  * Must be handled one by one
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public final class SequentialMessage implements IMessage {
