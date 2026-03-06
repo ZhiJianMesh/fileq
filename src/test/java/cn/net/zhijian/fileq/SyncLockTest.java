@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * `synchronized` is very easy to use.
  * Lock is agile.
  * It is surprising that synchronized is a little better than lock.
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public class SyncLockTest {

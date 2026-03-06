@@ -18,7 +18,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
  * 
- * @author Lgy
+ * @author flyinmind of csdn.net
  * Use FileChannel to read/write
  * Write num:20000, speed:116959, interval:171
  * Consume num:40000, speed:50825, interval:787, handled message num:40000

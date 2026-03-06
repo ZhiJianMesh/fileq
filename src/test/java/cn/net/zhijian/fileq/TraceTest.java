@@ -14,7 +14,7 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * ConcurrentMap,time:4483,speed:35690385
  * Map,time:3166,speed:50536955
  * Arr,time:209,speed:765550239
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public class TraceTest extends TestBase {

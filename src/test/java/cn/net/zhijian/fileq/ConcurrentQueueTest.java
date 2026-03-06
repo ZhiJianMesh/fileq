@@ -14,7 +14,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
  * 
- * @author Lgy
+ * @author flyinmind of csdn.net
  * 1)Directly use FileInputStream/FileOutputStream
  *   Write num:200000, speed: 67865, interval:2947
  *   Consume num:200000, speed: 51255, interval:3902, handled message num:200000

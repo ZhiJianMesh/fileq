@@ -19,7 +19,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
  * FastOutputStream write->useTime:146,Speed:219178082/s
  * SafeInputStream read->useTime:11004,Speed:2908033/s
  * FastInputStream read->useTime:162,Speed:197530864/s
- * @author Lgy
+ * @author flyinmind of csdn.net
  *
  */
 public class PureIOTest extends TestBase {

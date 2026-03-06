@@ -17,7 +17,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
 import cn.net.zhijian.fileq.util.LogUtil;
 /**
  * 
- * @author Lgy
+ * @author flyinmind of csdn.net
  * Mixed concurrent/sequential, buffered/channel
  * Write num:1600000, speed: 407747, interval:3924ms
  * Consume num:3998220, speed: 103621, interval:38585ms, handled message num:3998220
