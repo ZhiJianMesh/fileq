@@ -27,7 +27,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  * Write files base on BufferedOutputStream,
  * It's very fast, but it's not a good choice
  * because of the writing latency.
- * @author liguoyong77@sina.com
+ * @author flyinmind@csdn.net.cn
  *
  */
 public final class FastOutputStream implements IOutputStream {

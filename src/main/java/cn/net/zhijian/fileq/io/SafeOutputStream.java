@@ -33,7 +33,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  *   But it has latency to store data to disk,and it's very hard to close.
  *   In android, there are compatible problems.
  *   So give it up;
- * @author liguoyong77@sina.com
+ * @author flyinmind@csdn.net.cn
  *
  */
 public final class SafeOutputStream implements IOutputStream {
