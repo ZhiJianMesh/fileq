@@ -77,21 +77,24 @@ final class SequentialReader extends ConcurrentReader {
         IMessage msg = null;
         if(state == MsgState.FAILED) {
             long cur = System.currentTimeMillis();
-            if(cur - retriedAt > retryInterval) { //in retryInterval time, return null
-                if(retryInterval < MAX_RETRY_INTERVAL) {
-                    retryInterval <<= 1; //double retry time
-                }
-                retriedAt = cur;
-                if(failedTimes >= MAX_FAILED_TIMES) {
-                    //when using FastInputStream in high concurrency scenarios,
-                    //sometimes get unexpected content.
-                    //In ConcurrentRead, there's no chance to undo the mistake after it happened
-                    msg = super.reRead();
-                } else {
-                    msg = this.msg; //return old message again
-                }
-                state = MsgState.WAITCONFIRM;
+            if(cur - retriedAt < retryInterval) { //in retryInterval time, return null
+                return null;
             }
+
+            if(retryInterval < MAX_RETRY_INTERVAL) {
+                retryInterval <<= 1; //double next retry time
+            }
+            retriedAt = cur;
+            if(failedTimes >= MAX_FAILED_TIMES) {
+                //re-open the queue file when failed MAX_FAILED_TIMES
+                //when using FastInputStream in high concurrency scenarios,
+                //sometimes get unexpected content.
+                //In ConcurrentRead, there's no chance to undo the mistake after happened
+                msg = super.reRead();
+            } else {
+                msg = this.msg; //return old message again
+            }
+            state = MsgState.WAITCONFIRM;
         } else {
             retryInterval = MIN_RETRY_INTERVAL;
             retriedAt = System.currentTimeMillis();

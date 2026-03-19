@@ -33,11 +33,13 @@ import cn.net.zhijian.fileq.util.LogUtil;
 public final class FQTool {
     private static final Logger LOG = LogUtil.getInstance();
     
-    private static Dispatcher dispatcher = null;
+    //not very frequently used, so no strict synchronization
+    private static volatile Dispatcher dispatcher = null;
     private static final Map<String, FileQueue> queues = new ConcurrentHashMap<>();
     
     /**
-     * 
+     * Start default dispatcher
+     * All file queues use the same dispatcher
      * @param threadPool Thread pool to execute message handler
      */
     public static void start(ExecutorService threadPool) {
@@ -69,6 +71,7 @@ public final class FQTool {
             return fq;
         }
 
+        LOG.debug("Create queue {}", builder.queueName());
         builder.dispatcher(dispatcher);
         fq = builder.build();
         queues.put(fq.name, fq);
@@ -103,9 +106,10 @@ public final class FQTool {
         Collection<FileQueue> ff = queues.values();
         queues.clear(); //clear first then close queues one by one
         dispatcher.shutdown();
-        
+
         for(FileQueue fq : ff) {
             fq.close();
         }
+        dispatcher = null;
     }
 }

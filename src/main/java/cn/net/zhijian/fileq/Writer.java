@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 
@@ -49,9 +50,9 @@ final class Writer implements IWriter {
     private final boolean buffered;
     private final List<File> failToDelFiles = new ArrayList<>();
 
-    private volatile int curFileNo = 0;
-    private volatile int minFileNo = Integer.MAX_VALUE;
-    private IOutputStream qFile;
+    private final AtomicInteger curFileNo = new AtomicInteger(0);
+    private final AtomicInteger minFileNo = new AtomicInteger(Integer.MAX_VALUE);
+    private volatile IOutputStream qFile;
     private byte[] msgBuf = new byte[DEFAULT_BUF_LEN];
 
     /**
@@ -118,11 +119,11 @@ final class Writer implements IWriter {
                     ver = 0xff & ((int)head[MAGIC.length]);
                     if (ver == VER && IFile.byteArrayEquals(head, 0, MAGIC, 0, MAGIC.length)) {
                         no = IFile.parseInt(head, MAGIC.length + 1);
-                        if (this.minFileNo > no) {
-                            this.minFileNo = no;
+                        if (this.minFileNo.get() > no) {
+                            this.minFileNo.set(no);
                         }
-                        if (this.curFileNo < no) {
-                            this.curFileNo = no;
+                        if (this.curFileNo.get() < no) {
+                            this.curFileNo.set(no);
                         }
                         fileNum++;
                     }
@@ -133,13 +134,12 @@ final class Writer implements IWriter {
         }
 
         if (fileNum > 0) {
-            int fn = curFileNo + 1;//correct spotbugs report,volatile var can't depend on itself in multi-threads
-            curFileNo = fn;// move to the next one, no matter whether it is full or not
+            curFileNo.incrementAndGet();// move to the next one, no matter whether it is full or not
         } else {
-            minFileNo = 0;
-            curFileNo = 0;
+            minFileNo.set(0);
+            curFileNo.set(0);
         }
-        qFile = open(curFileNo);
+        qFile = open(curFileNo.get());
     }
 
     private IOutputStream open(int fileNo) throws IOException {
@@ -160,12 +160,12 @@ final class Writer implements IWriter {
     }
     
     private void removeFiles(int lastestFileNo) {
-        int curNum = lastestFileNo - this.minFileNo + 1;
+        int curNum = lastestFileNo - this.minFileNo.get() + 1;
         if (curNum < this.maxFileNum) {
             return;
         }
         int consumerMinFileNo = dispatcher.minFileNo(queueName);
-        int uselessNum = consumerMinFileNo - this.minFileNo;
+        int uselessNum = consumerMinFileNo - this.minFileNo.get();
         //can't delete files which are still being consumed
         int rmvNum = Math.min(curNum - this.maxFileNum, uselessNum);
         if(rmvNum <= 0) {
@@ -176,14 +176,14 @@ final class Writer implements IWriter {
         for(int i = failToDelFiles.size() - 1; i >= 0; i--) {
             File f = failToDelFiles.get(i);
             if(f.delete()) {
-                LOG.info("Remove file {}", f);
+                LOG.info("Remove file `{}` which failed to remove fore time", f);
                 failToDelFiles.remove(i);
             }
         }
         
         LOG.info("File num more than {}, remove {} file(s)", this.maxFileNum, rmvNum);
         for (int i = 0; i < rmvNum; i++) {
-            String fn = queueFileName(this.minFileNo + i);
+            String fn = queueFileName(this.minFileNo.get() + i);
             File f = new File(fn);
             if (!f.exists()) {
                 continue;
@@ -199,15 +199,13 @@ final class Writer implements IWriter {
                 failToDelFiles.add(f);
             }
         }
-        int fn = this.minFileNo; //revise spotbugs report,volatile can't depend on itself in multi-threads
-        this.minFileNo = fn + rmvNum;
+        this.minFileNo.addAndGet(rmvNum) ;
     }
 
     private void openNext() throws IOException {
         FileUtil.closeQuietly(qFile);
         qFile = null;
-        int fn = this.curFileNo + 1;
-        this.curFileNo = fn; //correct spotbugs report
+        int fn = this.curFileNo.incrementAndGet();
         removeFiles(fn);
         qFile = open(fn);
     }
@@ -228,7 +226,7 @@ final class Writer implements IWriter {
         
         synchronized(this) {
             if(msgBuf.length < writeLen) {
-                msgBuf = new byte[writeLen * 3 / 2];
+                msgBuf = new byte[writeLen * 3 / 2]; //extend message buffer size
             }
 
             if (chkHash) {
@@ -249,19 +247,20 @@ final class Writer implements IWriter {
             } catch (Exception e) {
                 throw new FQException(e);
             }
-            dispatcher.ready();
         }
+        dispatcher.ready();
     }
     
     @Override
-    public synchronized void close() throws IOException {
-        if(qFile != null) {
-            qFile.flush();
-            LOG.debug("Writer close `{}`,size:{}", qFile.file(), qFile.size());
-            FileUtil.closeQuietly(qFile);
-            qFile = null;
+    public void close() throws IOException {
+        if (qFile == null) {
+            return;
         }
-        removeFiles(this.curFileNo);
+        qFile.flush();
+        LOG.debug("Writer close `{}`,size:{}", qFile.file(), qFile.size());
+        FileUtil.closeQuietly(qFile);
+        qFile = null;
+        removeFiles(this.curFileNo.get());
     }
 
     @Override
@@ -271,12 +270,12 @@ final class Writer implements IWriter {
 
     @Override
     public int curFileNo() {
-        return curFileNo;
+        return curFileNo.get();
     }
 
     @Override
     public int minFileNo() {
-        return minFileNo;
+        return minFileNo.get();
     }
 
     @Override
@@ -294,10 +293,6 @@ final class Writer implements IWriter {
         return queueName;
     }
 
-    public String curFileName() {
-        return queueFileName(curFileNo);
-    }
-    
     @Override
     public String queueFileName(int fileNo) {
         return FileUtil.addPath(dir, name + '.' + fileNo);

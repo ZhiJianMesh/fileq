@@ -33,7 +33,7 @@ import cn.net.zhijian.fileq.intf.IOutputStream;
  *   But it has latency to store data to disk,and it's very hard to close.
  *   In android, there are compatible problems.
  *   So give it up;
- * @author flyinmind of csdn.net flyinmind of csdn.net
+ * @author flyinmind of csdn.net
  *
  */
 public final class SafeOutputStream implements IOutputStream {
@@ -51,14 +51,12 @@ public final class SafeOutputStream implements IOutputStream {
 
     @Override
     public void write(byte[] content, int offset, int len) throws IOException {
-        fc.write(ByteBuffer.wrap(content, offset, len));
-        size += len;
+        size += fc.write(ByteBuffer.wrap(content, offset, len));
     }
-    
+
     @Override
     public void write(byte[] content) throws IOException {
-        fc.write(ByteBuffer.wrap(content));
-        size += content.length;
+        size += fc.write(ByteBuffer.wrap(content));
     }
 
     @Override

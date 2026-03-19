@@ -16,7 +16,6 @@ limitations under the License.
 package cn.net.zhijian.fileq;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 
@@ -30,7 +29,7 @@ import cn.net.zhijian.fileq.util.FileUtil;
 
 /**
  * main class
- * @author flyinmind of csdn.net flyinmind of csdn.net
+ * @author flyinmind of csdn.net
  *
  */
 public final class FileQueue implements IFile {
@@ -58,7 +57,7 @@ public final class FileQueue implements IFile {
         this.dispatcher = builder.dispatcher;
         this.name = builder.queueName();
         this.bufferedPoll = builder.bufferedPoll;
-        this.bufferedPos = builder.bufferedPos;
+        this.bufferedPos = builder.posBuffTimes;
         LOG.debug("Create queue `{}`", this.name);
     }
 
@@ -168,17 +167,24 @@ public final class FileQueue implements IFile {
     public synchronized void rmvConsumer(String name) {
         dispatcher.rmvConsumer(writer.queueName(), name);
     }
+    
+    /**
+     * Remove all consumers
+     */
+    public synchronized void clearConsumers() {
+        dispatcher.rmvConsumers(writer.queueName());
+    }
 
     public synchronized void close() throws IOException {
         if(writer.isClosed()) {
             return;
         }
         LOG.info("Close the queue {}", writer.queueName());
+        dispatcher.rmvConsumers(writer.queueName());
         //Should be ahead rmvConsumers 
         //because it will remove useless queue files,
         //To get min_consumer_file depends on consumers
         writer.close();
-        dispatcher.rmvConsumers(writer.queueName());
     }
     
     public static class Builder {
@@ -188,8 +194,8 @@ public final class FileQueue implements IFile {
         private int maxFileNum = DEFAULT_QFILE_NUM;
         private boolean bufferedPush = false;
         private boolean bufferedPoll = false;
-        //save position info into file after updating `bufferedPos` times
-        private int bufferedPos = 1024;
+        //save position info into file after updating `posBuffTimes` times
+        private int posBuffTimes = 1024;
         private IDispatcher dispatcher;
         
         /**
@@ -233,11 +239,11 @@ public final class FileQueue implements IFile {
          * It improves the performance, but it lead in a risk.
          * If the program crashed, re-start again, it will consume `bufferedPos`
          * messages repeatedly.
-         * @param bufferedPos  write position info into file after 'bufferedPos' times
+         * @param posBuffTimes  write position info into file after 'bufferedPos' times
          * @return Builder
          */
-        public Builder bufferedPos(int bufferedPos) {
-            this.bufferedPos = bufferedPos;
+        public Builder posBuffTimes(int posBuffTimes) {
+            this.posBuffTimes = posBuffTimes;
             return this;
         }
         
@@ -273,26 +279,12 @@ public final class FileQueue implements IFile {
             return this;
         }
         
-        /**
-         * Create a dispatcher
-         * @param threadPool thread pool
-         * @return Builder
-         */
-        Builder createDispatcher(ExecutorService threadPool) {
-            this.dispatcher = new Dispatcher(threadPool);
-            return this;
-        }
-        
         public FileQueue build() throws FQException {
             return new FileQueue(this);
         }
         
         public String queueName() {
             return FileUtil.addPath(dir, name);
-        }
-        
-        IDispatcher dispatcher() {
-            return this.dispatcher;
         }
     }
 }

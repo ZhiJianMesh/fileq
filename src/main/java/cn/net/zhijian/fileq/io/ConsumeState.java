@@ -35,6 +35,9 @@ import cn.net.zhijian.fileq.util.LogUtil;
  * So you should set 'bufferedTimes' with a proper value, for example 1000.
  * It means that write to disk after 1000 times pool.
  * When crashing, it will cause to re-read max 1000 messages after recovering.
+ * ---
+ * save() is called in multi-threads, fileNo() and readPos() are only called
+ * in Dispatcher.Consumer.read, Dispatcher run in a single resident thread
  * @author flyinmind of csdn.net
  *
  */
@@ -44,20 +47,19 @@ public final class ConsumeState implements Closeable, IFile {
     private static final int MAX_SIZE = 100 * 1024 * Integer.BYTES * 2 + FILE_HEAD_LEN;
 
     private final File file;
-    //after updated maxBufferedTimes times, save read position to file
-	//if it is set too large, there will be rishs about re-consuming
-    private final int maxBufferedTimes;
+    //after updated maxBuffTimes times, save read position to file
+	//if it is set too large, there will be risks about re-consuming
+    private final int maxBuffTimes;
     private final byte[] buf = new byte[Integer.BYTES * 2];
     private IOutputStream stateFile;
     private long recordTime = System.currentTimeMillis(); //save file time
     private volatile int fileNo = 0;
     private volatile int readPos = FILE_HEAD_LEN;
-    private volatile int bufferedTimes = 0;
-    private volatile boolean changed = false; //identify whether state changed or not
+    private int posBuffTimes = 0;
 
-    public ConsumeState(File file, int bufferedTimes) throws IOException {
+    public ConsumeState(File file, int maxBuffTimes) throws IOException {
         this.file = file;
-        this.maxBufferedTimes = bufferedTimes;
+        this.maxBuffTimes = maxBuffTimes;
 
         if(!file.exists()) { //if not exists, all start from 0
             init(0, FILE_HEAD_LEN);
@@ -117,32 +119,26 @@ public final class ConsumeState implements Closeable, IFile {
         stateFile = null;
     }
 
-    public void save(int fileNo, int readPos, boolean force) {
-        this.changed = this.changed || readPos != this.readPos || fileNo != this.fileNo;
-        if(this.changed) {
-            int bt = this.bufferedTimes + 1;
-            this.bufferedTimes = bt; //correct spotbugs report
-            this.fileNo = fileNo;
-            this.readPos = readPos;
+    public synchronized void save(int fileNo, int readPos, boolean force) {
+        if(readPos == this.readPos && fileNo == this.fileNo) {
+            return;
         }
-        save(force || this.bufferedTimes >= maxBufferedTimes);
+        this.posBuffTimes++;
+        this.fileNo = fileNo;
+        this.readPos = readPos;
+        save(force || this.posBuffTimes >= maxBuffTimes);
     }
 
-    public void save(int readPos, boolean force) {
-        this.changed = this.changed || readPos != this.readPos;
-        if(this.changed) {
-            int bt = this.bufferedTimes + 1;
-            this.bufferedTimes = bt;
-            this.readPos = readPos;
+    public synchronized void save(int readPos, boolean force) {
+        if(readPos == this.readPos) {
+            return;
         }
-        save(force || this.bufferedTimes >= maxBufferedTimes);
+        this.posBuffTimes++;
+        this.readPos = readPos;
+        save(force || this.posBuffTimes >= maxBuffTimes);
     }
 
     private void save(boolean force) {
-        if(!this.changed) {
-            return;
-        }
-        
         long cur = System.currentTimeMillis();
         if(!force) {
             if(cur - recordTime < MAX_SAVE_INTERVAL) {
@@ -150,7 +146,7 @@ public final class ConsumeState implements Closeable, IFile {
             }
         }
         recordTime = cur;
-        bufferedTimes = 0;
+        posBuffTimes = 0;
 
         synchronized(this) {
             try {
@@ -167,7 +163,6 @@ public final class ConsumeState implements Closeable, IFile {
                     stateFile.write(buf);
                     stateFile.flush(); //It's very important, save it to disk right now
                 }
-                this.changed = false;
             } catch (IOException e) {
                 LOG.error("Fail to save consumer {} state", this.file, e);
             }

@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     private final ExecutorService threadPool;
     private final Map<String, Queue> queues = new ConcurrentHashMap<>();
 
-    private volatile long totalMsgNum = 0L;
+    private final AtomicLong totalMsgNum = new AtomicLong(0);
     //0 stopped,1:running,2:paused
     private volatile int goon = RUNNING;
     private volatile boolean tracing = true; 
@@ -175,7 +176,7 @@ final class Dispatcher extends Thread implements IDispatcher {
                 c.close();
             }
         }
-        
+
         void setPause(String name, boolean v) {
             for(Consumer c : this.consumers) {
                 if(name == null || c.name.equals(name)) {
@@ -186,6 +187,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     }
     
     public Dispatcher(ExecutorService threadPool) {
+        super("FileQueue_Default_Dispatcher");
         this.threadPool = threadPool;
     }
     
@@ -193,7 +195,6 @@ final class Dispatcher extends Thread implements IDispatcher {
     public void run() {
         LOG.info("Dispatcher started");
         int msgNum;
-        int count;
 
         while(goon != STOPPED) {
         	if(goon == PAUSED) { //all tasks paused, not stopped
@@ -202,7 +203,6 @@ final class Dispatcher extends Thread implements IDispatcher {
         	}
             msgNum = 0;
             for(Queue queue : queues.values()) {
-                count = 0;
                 for(Consumer c : queue.consumers) {
                     if(c.paused()) {
                         continue;
@@ -211,10 +211,9 @@ final class Dispatcher extends Thread implements IDispatcher {
                     if(msg == null) {
                         continue;
                     }
-                    count++;
+                    msgNum++;
                     threadPool.submit(() -> c.handle(msg));
                 }
-                msgNum += count;
             }
 
             if(msgNum == 0) {
@@ -246,13 +245,13 @@ final class Dispatcher extends Thread implements IDispatcher {
                     }
                 }
             } else {
-                totalMsgNum += msgNum;
+                totalMsgNum.addAndGet(msgNum);
             }
         }
         
-        queues.forEach((k, c) -> {
+        queues.forEach((k, q) -> {
             LOG.debug("Close queue {}", k);
-            c.removeAll();
+            q.removeAll();
         });
         queues.clear();
         LOG.info("Dispatcher finished");
@@ -267,13 +266,21 @@ final class Dispatcher extends Thread implements IDispatcher {
     @Override
     public void pauseConsumer(String queue, String consumer) {
         Queue q = queues.get(queue);
-        q.setPause(consumer, true);
+        if(q != null) {
+            q.setPause(consumer, true);
+        } else {
+            LOG.warn("pauseConsumer:queue({}) not exists", queue);
+        }
     }
 
     @Override
     public void continueConsumer(String queue, String consumer) {
         Queue q = queues.get(queue);
-        q.setPause(consumer, false);
+        if(q != null) {
+            q.setPause(consumer, false);
+        } else {
+            LOG.warn("continueConsumer:queue({}) not exists", queue);
+        }
     }
 
     @Override
@@ -288,7 +295,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     public int minFileNo(String queueName) {
         Queue queue = queues.get(queueName);
         if(queue == null) {
-            LOG.info("Queue({}) not exists", queueName);
+            LOG.warn("minFileNo:queue({}) not exists", queueName);
             return 0;
         }
         
@@ -307,7 +314,7 @@ final class Dispatcher extends Thread implements IDispatcher {
      */
     @Override
     public long handledMsgNum() {
-        return totalMsgNum;
+        return totalMsgNum.get();
     }    
     
     private Queue addQueue(String queueName) {
@@ -324,7 +331,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     public void rmvConsumer(final String queueName, final String consumerName) {
         Queue queue = queues.get(queueName);
         if(queue == null) {
-            LOG.info("Queue({}) not exists", queueName);
+            LOG.info("rmvConsumer:queue({}) not exists", queueName);
             return;
         }
         queue.remove(consumerName);
@@ -334,7 +341,7 @@ final class Dispatcher extends Thread implements IDispatcher {
     public void rmvConsumers(String queueName) {
         Queue queue = queues.get(queueName);
         if(queue == null) {
-            LOG.info("Queue({}) not exists", queueName);
+            LOG.warn("rmvConsumers:queue({}) not exists ", queueName);
             return;
         }
         queue.removeAll();
