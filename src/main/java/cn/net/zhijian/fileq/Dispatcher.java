@@ -16,8 +16,10 @@ limitations under the License.
 package cn.net.zhijian.fileq;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -124,8 +126,9 @@ final class Dispatcher extends Thread implements IDispatcher {
     }
     
     private static class Queue {
-        //Only one element at most of time, so use an array not a list
-        private volatile Consumer[] consumers = new Consumer[] {};
+        //Only one element at most of time, so use an array copy list
+        //It's a multi-thread safe list
+        private final List<Consumer> consumers = new CopyOnWriteArrayList<>();
         
         void add(Consumer c) {
             for(Consumer ci : this.consumers) {
@@ -134,44 +137,31 @@ final class Dispatcher extends Thread implements IDispatcher {
                     return;
                 }
             }
-            Consumer[] consumers = new Consumer[this.consumers.length + 1];
-            System.arraycopy(this.consumers, 0, consumers, 0, this.consumers.length);
-            consumers[this.consumers.length] = c;
-            this.consumers = consumers;
+            consumers.add(c);
         }
         
         void remove(String name) {
-            if(this.consumers.length == 0) {
+            if(this.consumers.size() == 0) {
                 return;
             }
             int n = 0;
-            Consumer removeOne = null;
-            Consumer[] consumers = new Consumer[this.consumers.length - 1];
 
             for(Consumer c : this.consumers) {
-                if(!c.name.equals(name)) {
-                    if(n == consumers.length - 1) {
-                        LOG.warn("Consumer({}) not exists", name);
-                        return;
-                    }
-                    consumers[n++] = c;
-                } else {
-                	removeOne = c;
+                if(c.name.equals(name)) {
+                	this.consumers.remove(n);
+                    //If close before this.consumers updated,
+                    //it will cause null-point-exception when Dispatcher.run call Consumer.read.
+                    //Because Consumer.reader was closed but it is still in this.consumers.
+                	c.close();
+                	break;
                 }
-            }
-            
-            this.consumers = consumers;
-            if(removeOne != null) {
-            	//If close before this.consumers updated,
-            	//it will cause null-point-exception when Dispatcher.run call Consumer.read.
-            	//Because Consumer.reader was closed but it is still in this.consumers.
-            	removeOne.close();
+                n++;
             }
         }
         
         void removeAll() {
-        	Consumer[] oldList = this.consumers;
-        	this.consumers = new Consumer[] {}; //update as soon as possible, then close them one by one
+        	Consumer[] oldList = this.consumers.toArray(new Consumer[] {});
+        	this.consumers.clear();//clear as soon as possible, then close them one by one
             for(Consumer c : oldList) {
                 c.close();
             }

@@ -57,7 +57,6 @@ public final class SequentialMessage implements IMessage {
     
     @Override
     public boolean isCorrect() {
-        // TODO Auto-generated method stub
         return passed;
     }
 }
